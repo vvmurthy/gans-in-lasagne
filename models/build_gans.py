@@ -240,7 +240,7 @@ def build_discriminator(y_var, li, nc, lab_ln):
 
         prev_name = name
         name = 'conv' + str(n)
-        num_filters = num_filters / 2
+        num_filters = num_filters * 2
         filter_size = 4
         prev_num_filters = lasagne.layers.get_output_shape(discriminator[prev_name])[1]
         discriminator = batch_conv(discriminator, prev_name, name, num_filters, filter_size,
