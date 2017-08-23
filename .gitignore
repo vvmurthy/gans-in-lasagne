@@ -1,0 +1,7 @@
+# Used to store datasets
+celeba/
+mnist/
+
+# pyc files
+*.pycy
+
