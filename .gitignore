@@ -3,5 +3,5 @@ celeba/
 mnist/
 
 # pyc files
-*.pycy
+*.pyc
 
