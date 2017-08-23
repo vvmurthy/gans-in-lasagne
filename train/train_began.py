@@ -85,7 +85,6 @@ def train_began(configuration):
         for X_files_mem in iterate_membatches_unconditional(X_files_train, images_in_mem, dataset_loader, li, shuffle=True):
 
             for inputs in batch_iterator(X_files_mem, bz, shuffle=True):
-                print(num_batches)
 
                 # Create noise vector
                 noise = np.array(np.random.uniform(-1, 1, (bz, 8*8*num_filters))).astype(np.float32)

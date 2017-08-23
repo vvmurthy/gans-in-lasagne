@@ -35,10 +35,10 @@ def init_config():
     configuration['lr'] = 0.0002 # Perarnau et al use 0.0002
     configuration['num_epochs'] = 25
     configuration['im_dir'] = os.getcwd() + '/celeba/'
-    configuration['folder_name'] = 'first_test'
+    configuration['folder_name'] = 'icgan_celeba'
     configuration['dataset'] = ['celeba']
     configuration['file_loader'] = None
-    configuration['model'] = 'began'
+    configuration['model'] = 'icgan'
     configuration['dataset_loader'] = None
     configuration['batch_iterator'] = None
     configuration['train_function'] = None
