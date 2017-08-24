@@ -70,7 +70,8 @@ We recommend using the aligned and cropped datasets, though in theory any datase
 
 Currently, the test for IcGAN will generate an interpolation, a swap, and a reconstruction image and save them in `folder_name/images`. The test for BEGAN (WIP) will simply generate example images.
 
-1. ``` 
+1.
+``` 
 	python main.py test
 ```
 
@@ -95,7 +96,7 @@ One of the motivating factors behind combining implementations of several models
 
 To create a new model - one needs to provide three functions
 * a function to make the training functions (generator trainer, discriminator trainer, generator) - referred to as `make_train_fns`
-* a function to train the model - `train_{MODEL_NAME`}.py`
+* a function to train the model - `train_{MODEL_NAME}.py`
 * a function to test the model - `test_{MODEL_NAME}.py`
 * any needed auxilary functions + graphical functions
 
