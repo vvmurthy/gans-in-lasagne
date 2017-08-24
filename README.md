@@ -47,16 +47,18 @@ Dataset | Number of Images | Attributes|
 
 We recommend using the aligned and cropped datasets, though in theory any dataset can be used. 
 
-(WIP) We will soon supply a set of pretrained models + images of results from each epoch. These models were generated using learning rates and batchsizes given by the author (0.0002 and 64 for IcGAN, 0.0001 and 64 for BEGAN). 
+We supply a set of results for IcGAN trained on CelebA. These models were generated using the rates and batch sizes given by the author (0.0002 and 64 respectively)
+
+(WIP) We will soon supply a set of pretrained models + images of results from each epoch for BEGAN.
 
 **Using the training function**
 
 1. Download CelebA aligned + cropped images, along with the files `list_attr_celeba.txt` and `list_eval_partition.txt` [here](http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html). 
 2. You will then need to edit `config.py` with:
-  + which model you would like to train - `icgan` or `began`
+  + which model you would like to train - `'icgan'` or `'began'`
   + which directory to load images from
   + which directory to save generated images + models to
-  + which dataset you would like to use - `[mnist]` or `[celeba]`
+  + which dataset you would like to use - `['mnist']` or `['celeba']`
   + hyperparameters to use (learning rates, batch sizes, etc)
  See comments on `config.py` for more information.
 3. 
@@ -80,6 +82,8 @@ Currently, the test for IcGAN will generate an interpolation, a swap, and a reco
 These results are from the pretrained models provided, trained according to default specifications.
 
 #### Reconstructions of Real Faces 
+
+![reconstructions](gans-in-lasagne/icgan_celeba/images/reconstructions.png)
 
 #### Swapped Faces
 
