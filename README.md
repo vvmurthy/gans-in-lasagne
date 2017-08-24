@@ -59,11 +59,12 @@ We recommend using the aligned and cropped datasets, though in theory any datase
   + which dataset you would like to use - `[mnist]` or `[celeba]`
   + hyperparameters to use (learning rates, batch sizes, etc)
  See comments on `config.py` for more information.
-3. ``` 
+3. 
+``` 
 	python main.py TRAIN_OR_TEST
 ```
 
-*`TRAIN_OR_TEST` - whether to train a model, or test it using predefined functions. Note that if trained models do not exist in folder specified by `config.py`, this will result in an error.
+* `TRAIN_OR_TEST` - whether to train a model, or test it using predefined functions. Note that if trained models do not exist in folder specified by `config.py`, this will result in an error.
 
 ## 2. Testing the Model
 
@@ -73,22 +74,22 @@ Currently, the test for IcGAN will generate an interpolation, a swap, and a reco
 	python main.py test
 ```
 
-# ICGAN Results (to Come)
+## ICGAN Results (to Come)
 
 These results are from the pretrained models provided, trained according to default specifications.
 
-### Reconstructions of Real Faces 
+#### Reconstructions of Real Faces 
 
-### Swapped Faces
+#### Swapped Faces
 
-### Interpolation
+#### Interpolation
 
 
-# BEGAN Results (to Come)
+## BEGAN Results (to Come)
 
 These examples are from pretrained models provided, trained according to default specifications.
 
-# Adding new models to this repo
+### Adding new models to this repo
 
 One of the motivating factors behind combining implementations of several models into the same repo is that, because many functions provided in the repo are standard, it is very easy to implement and test new GANs.
 
@@ -106,7 +107,7 @@ Modifying `config.py` will also be necessary to supply image sizes, the number o
 
 Batch iterators, and many methods to display example images are provided in the repo. 
 
-#### To-Do
+### To-Do
 
 This repo is still a work in progress. Tasks to come include:
 * Providing pretrained models
