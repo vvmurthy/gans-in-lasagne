@@ -37,8 +37,8 @@ def show_reconstructions(images, reconstructions, li, nc, epoch, filename):
 
     for n in range(0, num_examples):
 
-        select_im = deprocess_image(images[n, :, :, :], li)
-        select_rec = deprocess_image(reconstructions[n, :, :, :])
+        select_im = deprocess_image(images[n, :, :, :], li, nc)
+        select_rec = deprocess_image(reconstructions[n, :, :, :], li, nc)
 
         image[li*n: li*n + li, 0: li , :] = select_im
         image[li * n: li * n + li, li: 2*li, :] = select_rec

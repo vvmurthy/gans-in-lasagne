@@ -1,8 +1,9 @@
 import lasagne
 import theano
 import theano.tensor as T
+import numpy as np
 
-from archive.utils import product
+from utils.gen_utils import product
 
 
 def build_encoder_y(li, nc, lab_ln, lr):
@@ -15,62 +16,27 @@ def build_encoder_y(li, nc, lab_ln, lr):
     name = 'input'
     encoder[name] = lasagne.layers.InputLayer(shape=input_shape, input_var=input_var)
     output_dims = input_shape
-
-    prev_name = name
-    name = 'conv1'
-    num_filters = 32
     filter_size = 5
-    prev_num_filters = lasagne.layers.get_output_shape(encoder[prev_name])[1]
-    encoder[name] = lasagne.layers.batch_norm(lasagne.layers.Conv2DLayer(encoder[prev_name], num_filters,
+    num_filters = 16
+    
+    repeat_num = int(np.log2(np.array(li)) - 3) + 1
+    
+    for n in range(0, repeat_num):
+        num_filters = num_filters * 2
+        prev_name = name
+        name = 'conv' + str(n)
+        prev_num_filters = lasagne.layers.get_output_shape(encoder[prev_name])[1]
+        encoder[name] = lasagne.layers.batch_norm(lasagne.layers.Conv2DLayer(encoder[prev_name], num_filters,
                                                                            filter_size, stride=2, pad='same',
                                                                            nonlinearity=lasagne.nonlinearities.rectify))
-    prev_output_dims = output_dims
-    output_dims = lasagne.layers.get_output_shape(encoder[name])
-    details.append([name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
-                    str(output_dims)])
-
-    prev_name = name
-    name = 'conv2'
-    num_filters = 64
-    filter_size = 5
-    prev_num_filters = lasagne.layers.get_output_shape(encoder[prev_name])[1]
-    encoder[name] = lasagne.layers.batch_norm(lasagne.layers.Conv2DLayer(encoder[prev_name], num_filters,
-                                                                           filter_size, stride=2, pad='same',
-                                                                           nonlinearity=lasagne.nonlinearities.rectify))
-    prev_output_dims = output_dims
-    output_dims = lasagne.layers.get_output_shape(encoder[name])
-    details.append([name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
-                    str(output_dims)])
-
-    prev_name = name
-    name = 'conv3'
-    num_filters = 128
-    filter_size = 5
-    prev_num_filters = lasagne.layers.get_output_shape(encoder[prev_name])[1]
-    encoder[name] = lasagne.layers.batch_norm(lasagne.layers.Conv2DLayer(encoder[prev_name], num_filters,
-                                                                           filter_size, stride=2, pad='same',
-                                                                           nonlinearity=lasagne.nonlinearities.rectify))
-    prev_output_dims = output_dims
-    output_dims = lasagne.layers.get_output_shape(encoder[name])
-    details.append([name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
-                    str(output_dims)])
-
-    prev_name = name
-    name = 'conv4'
-    num_filters = 256
-    filter_size = 5
-    prev_num_filters = lasagne.layers.get_output_shape(encoder[prev_name])[1]
-    encoder[name] = lasagne.layers.batch_norm(lasagne.layers.Conv2DLayer(encoder[prev_name], num_filters,
-                                                                           filter_size, stride=2, pad='same',
-                                                                           nonlinearity=lasagne.nonlinearities.rectify))
-    prev_output_dims = output_dims
-    output_dims = lasagne.layers.get_output_shape(encoder[name])
-    details.append([name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
+        prev_output_dims = output_dims
+        output_dims = lasagne.layers.get_output_shape(encoder[name])
+        details.append([name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
                     str(output_dims)])
 
     prev_name = name
     name = 'fc'
-    num_units = 512
+    num_units = int(li * li / 8)
 
     encoder[name] = lasagne.layers.DenseLayer(encoder[prev_name],
                                               num_units=num_units,
@@ -124,60 +90,27 @@ def build_encoder_z(li, nc, lr):
     encoder[name] = lasagne.layers.InputLayer(shape=input_shape, input_var=input_var)
     output_dims = input_shape
 
-    prev_name = name
-    name = 'conv1'
-    num_filters = 32
     filter_size = 5
-    prev_num_filters = lasagne.layers.get_output_shape(encoder[prev_name])[1]
-    encoder[name] = lasagne.layers.batch_norm(lasagne.layers.Conv2DLayer(encoder[prev_name], num_filters,
-                                            filter_size, stride=2, pad='same', nonlinearity=lasagne.nonlinearities.rectify))
-    prev_output_dims = output_dims
-    output_dims = lasagne.layers.get_output_shape(encoder[name])
-    details.append([name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
-                    str(output_dims)])
-
-    prev_name = name
-    name = 'conv2'
-    num_filters = 64
-    filter_size = 5
-    prev_num_filters = lasagne.layers.get_output_shape(encoder[prev_name])[1]
-    encoder[name] = lasagne.layers.batch_norm(lasagne.layers.Conv2DLayer(encoder[prev_name], num_filters,
+    num_filters = 16
+    
+    repeat_num = int(np.log2(np.array(li)) - 3) + 1
+    
+    for n in range(0, repeat_num):
+        num_filters = num_filters * 2
+        prev_name = name
+        name = 'conv' + str(n)
+        prev_num_filters = lasagne.layers.get_output_shape(encoder[prev_name])[1]
+        encoder[name] = lasagne.layers.batch_norm(lasagne.layers.Conv2DLayer(encoder[prev_name], num_filters,
                                                                            filter_size, stride=2, pad='same',
                                                                            nonlinearity=lasagne.nonlinearities.rectify))
-    prev_output_dims = output_dims
-    output_dims = lasagne.layers.get_output_shape(encoder[name])
-    details.append([name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
-                    str(output_dims)])
-
-    prev_name = name
-    name = 'conv3'
-    num_filters = 128
-    filter_size = 5
-    prev_num_filters = lasagne.layers.get_output_shape(encoder[prev_name])[1]
-    encoder[name] = lasagne.layers.batch_norm(lasagne.layers.Conv2DLayer(encoder[prev_name], num_filters,
-                                                                           filter_size, stride=2, pad='same',
-                                                                           nonlinearity=lasagne.nonlinearities.rectify))
-    prev_output_dims = output_dims
-    output_dims = lasagne.layers.get_output_shape(encoder[name])
-    details.append([name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
-                    str(output_dims)])
-
-    prev_name = name
-    name = 'conv4'
-    num_filters = 256
-    filter_size = 5
-    prev_num_filters = lasagne.layers.get_output_shape(encoder[prev_name])[1]
-    encoder[name] = lasagne.layers.batch_norm(lasagne.layers.Conv2DLayer(encoder[prev_name], num_filters,
-                                                                           filter_size, stride=2, pad='same',
-                                                                           nonlinearity=lasagne.nonlinearities.rectify))
-    prev_output_dims = output_dims
-    output_dims = lasagne.layers.get_output_shape(encoder[name])
-    details.append([name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
+        prev_output_dims = output_dims
+        output_dims = lasagne.layers.get_output_shape(encoder[name])
+        details.append([name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
                     str(output_dims)])
 
     prev_name = name
     name = 'fc'
-    num_units = 4096
+    num_units = int(li * li)
 
     encoder[name] = lasagne.layers.DenseLayer(encoder[prev_name],
                                                     num_units=num_units,
@@ -191,6 +124,7 @@ def build_encoder_z(li, nc, lr):
     prev_name = name
     name = 'out'
     num_units = 100
+    
     # We restrict output to tanh domain (same as input noise)
     encoder[name] = lasagne.layers.DenseLayer(encoder[prev_name],
                                               num_units=num_units,

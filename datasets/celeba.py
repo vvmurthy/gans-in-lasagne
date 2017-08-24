@@ -32,8 +32,11 @@ def preprocess_im(filename, li):
 # Loads files after minibatch iteration
 def load_files(X_files, num_samples, li):
     X = np.zeros((num_samples, 3, li, li)).astype(np.float32)
-    for im in range(0, num_samples):
-        X[im, :, :, :] = preprocess_im(X_files[im], li)
+    if num_samples == 1:
+        return preprocess_im(X_files, li)
+    else:
+        for im in range(0, num_samples):
+            X[im, :, :, :] = preprocess_im(X_files[im], li)
     return X
 
 

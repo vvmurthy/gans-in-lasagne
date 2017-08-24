@@ -21,10 +21,12 @@ def deprocess_image(image, li, nc):
 
 # Interpolate between two different vectors
 def interpolate_vector(vect_1, vect_2, n_interpolations):
-    weights = np.arange(0, 1 + np.float32(1 / n_interpolations), np.float32(1 / n_interpolations))
-    vect = np.zeros(weights.shape[0] + 1, vect_1.shape[1]).astype(np.float32)
+    weights = np.arange(0, 1 + np.float32(1 / float(n_interpolations)), 
+                        np.float32(1 / float(n_interpolations)))
+    vect = np.zeros((weights.shape[0], vect_1.shape[0])).astype(np.float32)
 
     for n in range(0, weights.shape[0]):
-        vect[n, :] = vect_1[n, :] * weights[n] + vect_2[n, :] * (1 - weights[n])
+        for hid in range(0, vect_1.shape[0]):
+            vect[n, hid] = vect_1[hid] * weights[n] + vect_2[hid] * (1 - weights[n])
 
     return vect

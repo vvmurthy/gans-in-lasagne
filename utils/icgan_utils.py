@@ -8,13 +8,14 @@ def binarize_y_celeba(y, threshhold):
     type_hair = [0, 15, 16]
     color_hair = [2, 3, 4, 7]
 
-    index = np.argmax(y[type_hair], axis =1)
-    y[:, type_hair] = -1
-    y[:, type_hair[index]] = 1
-
-    index = np.argmax(y[color_hair], axis=1)
-    y[:, color_hair] = -1
-    y[:, color_hair[index]] = 1
+    hair_type_index = type_hair[np.argmax(y[type_hair])]
+    color_type_index = color_hair[np.argmax(y[color_hair])]
+    
+    y[type_hair] = -1
+    y[hair_type_index] = 1
+    
+    y[color_hair] = -1
+    y[color_type_index] = 1
 
     y[y <= threshhold] = -1
     y[y > threshhold] = 1
@@ -22,6 +23,7 @@ def binarize_y_celeba(y, threshhold):
 
 # Binarize y without the CelebA constraints of hair color and type
 def binarize_y(y, threshhold):
+
     y[y <= threshhold] = -1
     y[y > threshhold] = 1
     return y
@@ -51,12 +53,13 @@ def modify_y_celeba(y, binarize):
             temp[color_hair] = -1
             temp[n] = 1
         else:
-            temp[n] = temp[n] * -1
+            temp[n] = 1
         y_vars[n + 1,:] = temp
 
     return y_vars
 
 # Input is a vector y, returns matrix of y variations
+# Y is assumed to be mutually exclusive here
 def modify_y(y, binarize):
     # Binarize y
     if binarize:
@@ -66,9 +69,11 @@ def modify_y(y, binarize):
 
     y_vars[0, :] = y
 
+    indices = np.arange(0, y.shape[0])
     for n in range(0, y.shape[0]):
         temp = np.copy(y)
-        temp[n] = temp[n] * -1
+        temp[indices] = -1
+        temp[n] = 1
         y_vars[n + 1, :] = temp
 
     return y_vars
