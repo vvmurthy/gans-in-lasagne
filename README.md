@@ -42,7 +42,7 @@ Currently, we support:
 
 Dataset | Number of Images | Attributes|
 --- | --- | --- |
-[CelebA](http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html) | ~200000 | 18 attributes from Perarnau et al |
+[CelebA](http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html) | ~200000 | 18 attributes from Perarnau et al. |
 [MNIST](http://yann.lecun.com/exdb/mnist/) | 60000 | number written |
 
 We recommend using the aligned and cropped datasets, though in theory any dataset can be used. 
@@ -77,18 +77,23 @@ Currently, the test for IcGAN will generate an interpolation, a swap, and a reco
 	python main.py test
 ```
 
-## ICGAN Results (to Come)
+To use the pretrained models, edit `config.py` to have the variable `folder_name` point to `icgan_celeba`.
 
-These results are from the pretrained models provided, trained according to default specifications.
+## ICGAN Results
 
-#### Reconstructions of Real Faces 
+These results are from the pretrained models provided, trained according to default specifications. These models were trained on the CelebA dataset with the 18 attributes from Perarnau et al. 
 
-![reconstructions](gans-in-lasagne/icgan_celeba/images/reconstructions.png)
+#### Reconstructions of Real Faces with Different Attributes
+
+![alt text](icgan_celeba/images/reconstructions.png "Reconstructions")
 
 #### Swapped Faces
 
+![alt text](icgan_celeba/images/swapped.png "Swapped")
+
 #### Interpolation
 
+![alt text](icgan_celeba/images/interpolation.png "Interpolation")
 
 ## BEGAN Results (to Come)
 
@@ -115,7 +120,7 @@ Batch iterators, and many methods to display example images are provided in the 
 ### To-Do
 
 This repo is still a work in progress. Tasks to come include:
-* Providing pretrained models
+* Providing pretrained models for BEGAN (and possibly IcGAN on MNIST)
 * Adding examples to `README`
 * Providing a test function for `began`
 * Rewriting `train` and `test` functions to use variables from dict more easily
