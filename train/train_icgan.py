@@ -5,7 +5,6 @@ import lasagne
 import numpy as np
 
 from utils.iters import iterate_minibatches_conditional, iterate_membatches
-from utils.icgan_utils import randomize_y
 from utils.graphs_conditional import show_examples, show_encoder_stats_graph, show_reconstructions
 from utils.graphs_unconditional import show_training_stats_graph
 from models.build_encoders import build_encoder_z, build_encoder_y
@@ -36,6 +35,7 @@ def train_icgan(configuration):
     # Set file loader, iterator
     batch_iterator = iterate_minibatches_conditional
     dataset_loader = configuration['dataset_loader']
+    randomize_y = configuration['randomize_y']
 
     # Make folders for storing models
     base = os.getcwd() + '/' + folder_name + '/'
@@ -96,7 +96,7 @@ def train_icgan(configuration):
 
                 # Create noise vector
                 noise = np.array(np.random.uniform(-1, 1, (bz, 100))).astype(np.float32)
-                y_fake = randomize_y(targets, configuration['dataset'])
+                y_fake = randomize_y(targets)
 
                 # Train the generator
                 fake_out, ims, gen_train_err_epoch = gen_train_fn(noise, targets, lr)

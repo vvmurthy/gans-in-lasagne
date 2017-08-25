@@ -20,12 +20,10 @@ def train_began(configuration):
     bz = configuration['bz']
     li = configuration['li']
     nc = configuration['nc']
-    lab_ln = configuration['lab_ln']
     folder_name = configuration['folder_name']
 
     # Set variables from dataset
     X_files_train = configuration['X_files_train']
-    X_files_val = configuration['X_files_val']
 
     # Set file loader, iterator
     batch_iterator = iterate_minibatches_unconditional
@@ -55,7 +53,7 @@ def train_began(configuration):
         start_epoch = np.load(base + 'stats/epoch.npy')[0]
         gen_train_err = np.load(base + 'stats/gen_train_err.npy')
         dis_train_err_real = np.load(base + 'stats/dis_train_err_real.npy')
-        dis_train_err_fake = np.load(base + 'stats/convergence_measure.npy')
+        convergence_measure = np.load(base + 'stats/convergence_measure.npy')
 
         # Load models
         with np.load(base + 'models/generator_epoch' + str(start_epoch) + '.npz') as f:
@@ -86,8 +84,10 @@ def train_began(configuration):
 
             for inputs in batch_iterator(X_files_mem, bz, shuffle=True):
 
+                print(num_batches)
+
                 # Create noise vector
-                noise = np.array(np.random.uniform(-1, 1, (bz, 8*8*num_filters))).astype(np.float32)
+                noise = np.array(np.random.uniform(-1, 1, (bz, 8*8))).astype(np.float32)
 
                 # Train the generator
                 fake_out, ims, gen_train_err_epoch = gen_train_fn(noise, lr)
@@ -123,12 +123,11 @@ def train_began(configuration):
             progress = float(epoch) / num_epochs
             lr = start_lr * 2 * (1 - progress)
 
-        # Do a pass over first 10 sets of 64 y vectors from validation set every epoch, show example images
-        # note many example images are repeated between categories
-        sets = 10
+        # Create 100 example generated images after each epoch
+        sets = 100
         val_ims = np.zeros((bz * sets, nc, li, li))
         for st in range(0, sets):
-            noise = np.array(np.random.uniform(-1, 1, (bz, 8*8*num_filters))).astype(np.float32)
+            noise = np.array(np.random.uniform(-1, 1, (bz, 8*8))).astype(np.float32)
             val_ims[bz * st: bz * st + bz] = gen_fn(noise)
 
         show_examples_unlabeled(val_ims, li, nc, epoch, base + 'images/epoch' + str(epoch) + '.png')

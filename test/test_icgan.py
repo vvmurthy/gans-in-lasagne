@@ -4,7 +4,6 @@ import lasagne
 import matplotlib.pyplot as plt
 import numpy as np
 
-from utils.icgan_utils import modify_y, modify_y_celeba
 from utils.gen_utils import interpolate_vector, deprocess_image
 from datasets.celeba import load_files
 from models.build_encoders import build_encoder_z, build_encoder_y
@@ -34,6 +33,7 @@ def test_icgan(configuration):
     bz = configuration['bz']
     lab_ln = configuration['lab_ln']
     folder_name = configuration['folder_name']
+    modify_y = configuration['modify_y']
 
     # Set dataset
     X_files_test = configuration['X_files_test']
@@ -80,10 +80,7 @@ def test_icgan(configuration):
             z_permutations[n,:] = z
 
         # Create y matrix
-        if 'celeba' in configuration['dataset']:
-            y_permutations = np.expand_dims(modify_y_celeba(y_pred, True), axis=2)
-        else:
-            y_permutations = np.expand_dims(modify_y(y_pred, True), axis=2)
+        y_permutations = np.expand_dims(modify_y(y_pred, True), axis=2)
             
 
         # Generate images

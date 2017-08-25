@@ -21,11 +21,11 @@ def binarize_y_celeba(y, threshhold):
     y[y > threshhold] = 1
     return y
 
-# Binarize y without the CelebA constraints of hair color and type
+# Binarize y in a mutually exclusive manner
 def binarize_y(y, threshhold):
-
-    y[y <= threshhold] = -1
-    y[y > threshhold] = 1
+    top_preds = np.argmax(y)
+    y[:] = -1
+    y[top_preds] = 1
     return y
 
 
@@ -80,12 +80,18 @@ def modify_y(y, binarize):
 
 
 # Generates fake y vectors for a given minibatch
-def randomize_y(y, dataset):
+def randomize_y(y):
     for n in range(0, y.shape[0]):
         index = np.random.randint(0, y.shape[1])
-        if 'celeba' in dataset:
-            y[n, :, 0] = modify_y_celeba(y[n, :, 0], False)[index, :]
-        else:
-            y[n, :, 0] = modify_y(y[n, :, 0], False)[index, :]
+        y[n, :, 0] = modify_y(y[n, :, 0], False)[index, :]
+
+    return y.astype(np.float32)
+
+
+# Generates fake y vectors for a given minibatch
+def randomize_y_celeba(y):
+    for n in range(0, y.shape[0]):
+        index = np.random.randint(0, y.shape[1])
+        y[n, :, 0] = modify_y_celeba(y[n, :, 0], False)[index, :]
 
     return y.astype(np.float32)

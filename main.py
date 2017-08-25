@@ -2,7 +2,7 @@ import sys
 from config import config
 
 
-def run_function(mode='test'):
+def run_function(mode='train'):
     configuration = config()
     if mode == 'train':
         configuration['train_function'](configuration)

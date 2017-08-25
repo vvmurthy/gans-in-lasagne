@@ -4,6 +4,8 @@ import datasets.mnist as mnist
 from train.train_began import  train_began
 from train.train_icgan import train_icgan
 from test.test_icgan import test_icgan
+from utils.icgan_utils import modify_y, modify_y_celeba, randomize_y
+from utils.icgan_utils import randomize_y_celeba
 
 
 def init_config():
@@ -32,13 +34,13 @@ def init_config():
 
     configuration['bz'] = 64
     configuration['images_in_mem'] = 12000
-    configuration['lr'] = 0.0002 # Perarnau et al use 0.0002
+    configuration['lr'] = 0.0001 # Perarnau et al use 0.0002
     configuration['num_epochs'] = 25
     configuration['im_dir'] = os.getcwd() + '/celeba/'
-    configuration['folder_name'] = 'icgan_celeba'
+    configuration['folder_name'] = 'began_celeba'
     configuration['dataset'] = ['celeba']
     configuration['file_loader'] = None
-    configuration['model'] = 'icgan'
+    configuration['model'] = 'began'
     configuration['dataset_loader'] = None
     configuration['batch_iterator'] = None
     configuration['train_function'] = None
@@ -50,7 +52,7 @@ def init_config():
     #   - k_t = initial value for k_t in Berthelot et al (they use 0)
     if configuration['model'] == 'began':
         configuration['gamma'] = 0.7
-        configuration['num_filters'] = 128
+        configuration['num_filters'] = 64
         configuration['k_t'] = 0
         configuration['train_function'] = train_began
         configuration['test_function'] = None
@@ -58,6 +60,12 @@ def init_config():
     if configuration['model'] == 'icgan':
         configuration['train_function'] = train_icgan
         configuration['test_function'] = test_icgan
+        configuration['randomize_y'] = randomize_y
+        configuration['modify_y'] = modify_y
+        if 'celeba' or 'celeba-128' in configuration['dataset']:
+            configuration['modify_y'] = modify_y_celeba
+            configuration['randomize_y'] = randomize_y_celeba
+            
 
     return configuration
 
@@ -107,7 +115,7 @@ def config():
     elif 'celeba-128' in configuration['dataset'] and len(configuration['dataset']) == 1:
         configuration['nc'] = 3
         configuration['lab_ln'] = 18
-        configuration['li'] = 64
+        configuration['li'] = 128
         configuration['dataset_loader'] = celeba.load_files
 
         configuration['X_files_train'], configuration['y_train'], configuration['X_files_val'], \
