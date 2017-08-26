@@ -204,7 +204,7 @@ def build_discriminator(li, num_filters):
     output_dims = lasagne.layers.get_output_shape(discriminator[name])
 
     prev_name = name
-    name = 'conv0'
+    name = 'conv0_0'
     prev_num_filters = lasagne.layers.get_output_shape(discriminator[prev_name])[1]
     discriminator[name] = lasagne.layers.Conv2DLayer(discriminator[prev_name], num_filters,
                                                     filter_size, stride=1, pad='same', nonlinearity=elu)
@@ -216,10 +216,10 @@ def build_discriminator(li, num_filters):
     repeat_num = int(np.log2(np.array([li])) - 3)
     offset = 5
 
-    for n in range(1, 1 + repeat_num):
+    for n in range(0, repeat_num):
 
-        if n > offset:        
-            filters = (n-offset) * num_filters
+        if n >= offset:        
+            filters = (n-offset + 1) * num_filters
         else:
             filters = num_filters
         

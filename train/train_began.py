@@ -84,8 +84,6 @@ def train_began(configuration):
 
             for inputs in batch_iterator(X_files_mem, bz, shuffle=True):
 
-                print(num_batches)
-
                 # Create noise vector
                 noise = np.array(np.random.uniform(-1, 1, (bz, 8*8))).astype(np.float32)
 
@@ -103,7 +101,8 @@ def train_began(configuration):
                 num_batches += 1
 
         # Display training stats
-        print("Epoch {} of {} took {:.3f} minutes".format(epoch + 1, num_epochs, (time.time() - start_time) / np.float32(60)))
+        print("Epoch {} of {} took {:.3f} minutes".format(epoch + 1, num_epochs, 
+              (time.time() - start_time) / np.float32(60)))
         print("  Generator Error:\t\t{}".format(gen_train_err[epoch] / num_batches))
         print("  Discriminator Error:\t\t{}".format(dis_train_err_real[epoch] / num_batches))
         print("  Convergence Measure:\t\t{}".format(convergence_measure[epoch] / num_batches))
@@ -130,11 +129,13 @@ def train_began(configuration):
             noise = np.array(np.random.uniform(-1, 1, (bz, 8*8))).astype(np.float32)
             val_ims[bz * st: bz * st + bz] = gen_fn(noise)
 
-        show_examples_unlabeled(val_ims, li, nc, epoch, base + 'images/epoch' + str(epoch) + '.png')
+        show_examples_unlabeled(val_ims, li, nc, epoch, 
+                                base + 'images/epoch' + str(epoch) + '.png')
 
     # Make graph with training statistics
-    show_training_stats_graph(gen_train_err, dis_train_err_real, convergence_measure, num_epochs,
-                              base + 'stats/stats_graph.png')
+    show_training_stats_graph(gen_train_err, dis_train_err_real, convergence_measure, 
+                              num_epochs, base + 'stats/stats_graph.png', 
+                              'discriminator error', 'convergence measure')
 
     # Save final models
     np.savez(base + 'models/generator_final.npz', *lasagne.layers.get_all_param_values(generator['gen_out']))
