@@ -66,7 +66,7 @@ def test_icgan(configuration):
 
     # Reconstruct + change attributes
     # Torch implementation gets running train batch norms std and mean, this uses fixed vals
-    all_reconstructions = np.zeros((li*num_people, li*(lab_ln + 1), nc)).astype(np.float32)
+    all_reconstructions = np.zeros((li*num_people, li*(lab_ln + 2), nc)).astype(np.float32)
     indices = np.random.randint(0, X_files_test.shape[0], num_people)
     for index in range(0, num_people):
         image = dataset_loader(X_files_test[indices[index]], 1, li)
@@ -86,20 +86,22 @@ def test_icgan(configuration):
         generated_ims = gen_fn(z_permutations, y_permutations)
 
         # Map reconstructions to main image
+        all_reconstructions[li*index: li*index + li, 0: li, :] = deprocess_image(image, li, nc)
+
         for n in range(0, generated_ims.shape[0]):
-            all_reconstructions[li*index: li*index + li, li*n: li*n + li, :] = deprocess_image(generated_ims[n, :, :, : ], li, nc)
+            all_reconstructions[li*index: li*index + li, li*(n + 1): li*(n + 1) + li,
+                                :] = deprocess_image(generated_ims[n, :, :, : ], li, nc)
 
     # Plot the reconstruction
     fig, ax = plt.subplots()
+    plt.gcf().subplots_adjust(bottom=0.3)
 
     ax.set_yticks([])
-    ax.set_xticks(np.arange(0, li * len(labels) + li, li) + (li / 2), minor=False)
+    ax.set_xticks(np.arange(0, li * len(labels) + 2*li, li) + (li / 2), minor=False)
 
-    ax.set_xlabel('Description')
-    ax.set_ylabel('Person')
     ax.set_title("Sample Generated Images")
 
-    ax.set_xticklabels(['Reconstruction'] + labels, rotation='vertical', minor=False)
+    ax.set_xticklabels(['Original', 'Reconstruction'] + labels, rotation='vertical', minor=False)
     ax.set_yticklabels([])
     
     if nc == 1:
@@ -201,7 +203,7 @@ def test_icgan(configuration):
     ax.set_xticklabels([])
     ax.set_yticklabels([])
 
-    ax.set_title("Interpolation between 2 people")
+    ax.set_title("Interpolation between 2 Images")
 
     if nc == 1:
         plt.imshow(np.squeeze(interpolations), cmap='gray')
