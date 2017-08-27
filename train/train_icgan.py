@@ -90,6 +90,7 @@ def train_icgan(configuration):
 
             for batch in batch_iterator(X_files_mem, y_train_mem, bz, shuffle=True):
                 inputs, targets = batch
+                print(num_batches)
 
                 # expands dims for training (generator + discriminator expect 3D input)
                 targets = np.expand_dims(targets, 2)
@@ -140,7 +141,7 @@ def train_icgan(configuration):
         val_ims = np.zeros((bz * sets, nc, li, li))
         for st in range(0, sets):
             noise = np.array(np.random.uniform(-1, 1, (bz, 100))).astype(np.float32)
-            targets = np.expand_dims(y_val[bz * st: bz * st + bz], 2)
+            targets = np.expand_dims(y_val[bz * st: bz * st + bz], 2).astype(np.float32)
             val_ims[bz * st: bz * st + bz] = gen_fn(noise, targets)
 
         show_examples(val_ims, y_val[0:bz * sets], labels, li, nc, epoch, base + 'images/epoch' + str(epoch) + '.png')
@@ -192,7 +193,8 @@ def train_icgan(configuration):
         num_batches = 0
         for batch in batch_iterator(X_files_train, y_train, bz, shuffle=True):
             _, targets = batch
-            gen_targets = np.expand_dims(targets, 2)
+            targets = targets.astype(np.float32)
+            gen_targets = np.expand_dims(targets, 2).astype(np.float32)
             noise = np.array(np.random.uniform(-1, 1, (bz, 100))).astype(np.float32)
             gen_images = gen_fn(noise, gen_targets)
             encoder_z_loss[epoch] += encoder_z_train(gen_images, noise)

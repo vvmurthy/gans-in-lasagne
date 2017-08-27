@@ -34,13 +34,13 @@ def init_config():
 
     configuration['bz'] = 64
     configuration['images_in_mem'] = 12000
-    configuration['lr'] = 0.0001 # Perarnau et al use 0.0002
+    configuration['lr'] = 0.0002 # Perarnau et al use 0.0002
     configuration['num_epochs'] = 25
-    configuration['im_dir'] = os.getcwd() + '/celeba/'
-    configuration['folder_name'] = 'began_celeba'
-    configuration['dataset'] = ['celeba']
+    configuration['im_dir'] = os.getcwd() + '/mnist/'
+    configuration['folder_name'] = 'icgan_mnist'
+    configuration['dataset'] = ['mnist']
     configuration['file_loader'] = None
-    configuration['model'] = 'began'
+    configuration['model'] = 'icgan'
     configuration['dataset_loader'] = None
     configuration['batch_iterator'] = None
     configuration['train_function'] = None
@@ -50,19 +50,25 @@ def init_config():
     #   - gamma = the hyperparameter gamma specified in Berthelot et al
     #   - num_filters = the number of filters to use (N in Berthelot et al)
     #   - k_t = initial value for k_t in Berthelot et al (they use 0)
+    #   - offset = Berthelot et al train by linearly increasing number of filters
+    #   - after strided convolution or nearest neighbor resize. This offsets
+    #   - the start of linearly increasing number of filters for modest hardware
+    #   - I use 5 ( no increase in filters) because of hardware limitations
     if configuration['model'] == 'began':
         configuration['gamma'] = 0.7
         configuration['num_filters'] = 64
         configuration['k_t'] = 0
+        configuration['offset'] = 5
         configuration['train_function'] = train_began
         configuration['test_function'] = None
     ##### Hyperparameters for ICGAN
     if configuration['model'] == 'icgan':
         configuration['train_function'] = train_icgan
         configuration['test_function'] = test_icgan
-        configuration['randomize_y'] = randomize_y
-        configuration['modify_y'] = modify_y
-        if 'celeba' or 'celeba-128' in configuration['dataset']:
+        if 'mnist' in configuration['dataset']:
+            configuration['randomize_y'] = randomize_y
+            configuration['modify_y'] = modify_y
+        elif 'celeba' or 'celeba-128' in configuration['dataset']:
             configuration['modify_y'] = modify_y_celeba
             configuration['randomize_y'] = randomize_y_celeba
             

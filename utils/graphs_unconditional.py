@@ -57,7 +57,10 @@ def show_examples_unlabeled(images, li, nc, epoch, filename):
     else:
         ax.set_title("Example Generated Images")
 
-    plt.imshow(image)
+    if nc == 1:
+        plt.imshow(np.squeeze(image), cmap='gray')
+    else:
+        plt.imshow(image)
 
     fig.savefig(filename)
     plt.close('all')

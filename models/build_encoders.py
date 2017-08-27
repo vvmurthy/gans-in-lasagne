@@ -17,7 +17,7 @@ def build_encoder_y(li, nc, lab_ln, lr):
     encoder[name] = lasagne.layers.InputLayer(shape=input_shape, input_var=input_var)
     output_dims = input_shape
     filter_size = 5
-    num_filters = 16
+    num_filters = li / 4
     
     repeat_num = int(np.log2(np.array(li)) - 3) + 1
     
@@ -91,7 +91,7 @@ def build_encoder_z(li, nc, lr):
     output_dims = input_shape
 
     filter_size = 5
-    num_filters = 16
+    num_filters = li / 4
     
     repeat_num = int(np.log2(np.array(li)) - 3) + 1
     

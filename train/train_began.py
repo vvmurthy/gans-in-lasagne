@@ -33,6 +33,7 @@ def train_began(configuration):
     gamma = configuration['gamma']
     num_filters = configuration['num_filters']
     k_t = np.float32(configuration['k_t'])
+    offset = configuration['offset']
     
     # Make folders for storing models
     base = os.getcwd() + '/' + folder_name + '/'
@@ -44,7 +45,7 @@ def train_began(configuration):
 
     # Make training functions
     print("Making Training Functions...")
-    generator, discriminator, gen_train_fn, gen_fn, dis_train_fn = make_train_fns(li, gamma, num_filters)
+    generator, discriminator, gen_train_fn, gen_fn, dis_train_fn = make_train_fns(li, gamma, num_filters, offset)
 
     # Load in params if training incomplete
     try:
@@ -118,9 +119,13 @@ def train_began(configuration):
                  *lasagne.layers.get_all_param_values(discriminator['out']))
 
         # Decay the lr
-        if epoch >= num_epochs // 2:
-            progress = float(epoch) / num_epochs
-            lr = start_lr * 2 * (1 - progress)
+#        if epoch >= num_epochs // 2:
+#            progress = float(epoch) / num_epochs
+#            lr = start_lr * 2 * (1 - progress)
+
+        if epoch >= 1 and convergence_measure[epoch] - convergence_measure[epoch - 1] > -20:
+            print("Decaying Learning rate: Epoch " + str(epoch))
+            lr = lr / 2
 
         # Create 100 example generated images after each epoch
         sets = 100

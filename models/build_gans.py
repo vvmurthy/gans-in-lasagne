@@ -110,8 +110,8 @@ def build_generator(y_var, li, nc, lab_ln):
 
     # First convolution (uses valid, not full padding)
     prev_name = name
-    name = 'gen_conv1'
-    num_filters = 512
+    name = 'gen_conv0_0'
+    num_filters = 2 ** int(np.log2(np.array(li)) + 3)    
     filter_size = 4
     prev_num_filters = lasagne.layers.get_output_shape(generator[prev_name])[1]
     generator[name] = lasagne.layers.batch_norm(lasagne.layers.Deconv2DLayer(generator[prev_name], num_filters,
@@ -126,7 +126,7 @@ def build_generator(y_var, li, nc, lab_ln):
     # Pad with zeros on all sides (from torch implementation)
     # We repeat 3 times for 64 pixels
     repeat_num = int(np.log2(np.array(li)) - 3)
-    for n in range(2, repeat_num + 2):
+    for n in range(0, repeat_num):
         prev_name = name
         name = 'gen_pad' + str(n)
         pad_amt = 1
@@ -207,7 +207,7 @@ def build_discriminator(y_var, li, nc, lab_ln):
 
     prev_name = name
     name = 'conv1'
-    num_filters = 64
+    num_filters = li
     filter_size = 4
     prev_num_filters = lasagne.layers.get_output_shape(discriminator[prev_name])[1]
     discriminator[name] = lasagne.layers.Conv2DLayer(discriminator[prev_name], num_filters,

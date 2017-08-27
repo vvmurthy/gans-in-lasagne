@@ -33,7 +33,7 @@ def preprocess_im(filename, li):
 def load_files(X_files, num_samples, li):
     X = np.zeros((num_samples, 3, li, li)).astype(np.float32)
     if num_samples == 1:
-        return preprocess_im(X_files, li)
+        return np.expand_dims(preprocess_im(X_files, li), axis=0)
     else:
         for im in range(0, num_samples):
             X[im, :, :, :] = preprocess_im(X_files[im], li)

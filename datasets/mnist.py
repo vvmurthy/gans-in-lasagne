@@ -57,7 +57,7 @@ def load_xy(mnist_dir):
     def load_mnist_images(mnist_dir, filename):
         if not os.path.exists(mnist_dir + filename):
             download(filename, mnist_dir)
-        with gzip.open(filename, 'rb') as f:
+        with gzip.open(mnist_dir + filename, 'rb') as f:
             data = np.frombuffer(f.read(), np.uint8, offset=16)
 
         data = data.reshape(-1, 1, 28, 28)
@@ -67,7 +67,7 @@ def load_xy(mnist_dir):
         if not os.path.exists(mnist_dir + filename):
             download(filename, mnist_dir)
 
-        with gzip.open(filename, 'rb') as f:
+        with gzip.open(mnist_dir + filename, 'rb') as f:
             data = np.frombuffer(f.read(), np.uint8, offset=8)
 
         return data.astype(np.float32)
@@ -79,12 +79,13 @@ def load_xy(mnist_dir):
 
     # We also return the labels of the dataset
     labels = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+    int_lab = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]).astype(np.float32)
 
     # We store mnist labels where -1 is negative, 1 is positive
     # To match range of tanh
-    y_train = prep.label_binarize(y_train, labels)
+    y_train = prep.label_binarize(y_train, int_lab)
     y_train[y_train == 0] = -1
-    y_test = prep.label_binarize(y_test, labels)
+    y_test = prep.label_binarize(y_test, int_lab)
     y_test[y_test == 0] = -1
 
     # We reserve the last 10000 training examples for validation.

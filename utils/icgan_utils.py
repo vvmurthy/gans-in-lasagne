@@ -81,17 +81,21 @@ def modify_y(y, binarize):
 
 # Generates fake y vectors for a given minibatch
 def randomize_y(y):
+    indices = np.arange(0, y.shape[1])
+    np.random.shuffle(indices)
+    random_y = np.zeros((y.shape[0], y.shape[1], 1)).astype(np.float32) -1
     for n in range(0, y.shape[0]):
         index = np.random.randint(0, y.shape[1])
-        y[n, :, 0] = modify_y(y[n, :, 0], False)[index, :]
+        random_y[n, :, 0][indices[index]] = 1
 
-    return y.astype(np.float32)
+    return random_y.astype(np.float32)
 
 
 # Generates fake y vectors for a given minibatch
 def randomize_y_celeba(y):
+    random_y = np.zeros((y.shape[0], y.shape[1], 1))
     for n in range(0, y.shape[0]):
         index = np.random.randint(0, y.shape[1])
-        y[n, :, 0] = modify_y_celeba(y[n, :, 0], False)[index, :]
+        random_y[n, :, 0] = modify_y_celeba(y[n, :, 0], False)[index, :]
 
-    return y.astype(np.float32)
+    return random_y.astype(np.float32)

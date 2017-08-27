@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from utils.gen_utils import interpolate_vector, deprocess_image
-from datasets.celeba import load_files
 from models.build_encoders import build_encoder_z, build_encoder_y
 from models.build_gans import make_train_fns
 
@@ -34,10 +33,10 @@ def test_icgan(configuration):
     lab_ln = configuration['lab_ln']
     folder_name = configuration['folder_name']
     modify_y = configuration['modify_y']
+    dataset_loader = configuration['dataset_loader']
 
     # Set dataset
     X_files_test = configuration['X_files_test']
-    y_test = configuration['y_test']
     labels = configuration['labels']
 
     # Build GAN + Encoder
@@ -70,7 +69,7 @@ def test_icgan(configuration):
     all_reconstructions = np.zeros((li*num_people, li*(lab_ln + 1), nc)).astype(np.float32)
     indices = np.random.randint(0, X_files_test.shape[0], num_people)
     for index in range(0, num_people):
-        image = np.expand_dims(load_files(X_files_test[indices[index]], 1, li), axis=0)
+        image = dataset_loader(X_files_test[indices[index]], 1, li)
         y_pred = np.squeeze(encoder_y_test(image)[0])
         z = np.squeeze(encoder_z_test(image)[0])
 
@@ -102,23 +101,27 @@ def test_icgan(configuration):
 
     ax.set_xticklabels(['Reconstruction'] + labels, rotation='vertical', minor=False)
     ax.set_yticklabels([])
-    plt.imshow(all_reconstructions)
+    
+    if nc == 1:
+        plt.imshow(np.squeeze(all_reconstructions), cmap='gray')
+    else:
+        plt.imshow(all_reconstructions)
 
     fig.savefig(folder_name + '/images/reconstructions.png')
     plt.close(fig)
 
     # Swap
     indices = np.random.randint(0, X_files_test.shape[0], 2)
-    image_1 = np.expand_dims(load_files(X_files_test[indices[0]], 1, li), axis=0)
-    image_2 = np.expand_dims(load_files(X_files_test[indices[1]], 1, li), axis=0)
+    image_1 = dataset_loader(X_files_test[indices[0]], 1, li)
+    image_2 = dataset_loader(X_files_test[indices[1]], 1, li)
     y_1 = np.squeeze(encoder_y_test(image_1)[0])
     z_1 = np.squeeze(encoder_z_test(image_1)[0])
     y_2 = np.squeeze(encoder_y_test(image_2)[0])
     z_2 = np.squeeze(encoder_z_test(image_2)[0])
 
     swap_image = np.zeros((li * 2, li * 3, nc)).astype(np.float32)
-    swap_image[0:li, 0:li, :] = deprocess_image(np.squeeze(image_1), li, nc)
-    swap_image[li:li + li, 0:li, :] = deprocess_image(np.squeeze(image_2), li, nc)
+    swap_image[0:li, 0:li, :] = deprocess_image(image_1[0, :, :, :], li, nc)
+    swap_image[li:li + li, 0:li, :] = deprocess_image(image_2[0, :, :, :], li, nc)
 
     # Swaps for first image
     z_matrix = np.zeros((2, 100)).astype(np.float32)
@@ -158,7 +161,11 @@ def test_icgan(configuration):
 
     ax.set_xticklabels(x_lab, rotation='vertical', minor=False)
     ax.set_yticklabels([])
-    plt.imshow(swap_image)
+    
+    if nc == 1:
+        plt.imshow(np.squeeze(swap_image), cmap='gray')
+    else:
+        plt.imshow(swap_image)
 
     fig.savefig(folder_name + '/images/swapped.png')
     plt.close(fig)
@@ -169,8 +176,8 @@ def test_icgan(configuration):
     interpolations = np.zeros((li * num_people/2, li* n_inter + li, nc)).astype(np.float32)
     for n in range(0, num_people, 2):
     
-        image_1 = np.expand_dims(load_files(X_files_test[indices[n]], 1, li), axis=0)
-        image_2 = np.expand_dims(load_files(X_files_test[indices[n + 1]], 1, li), axis=0)
+        image_1 = dataset_loader(X_files_test[indices[n]], 1, li)
+        image_2 = dataset_loader(X_files_test[indices[n + 1]], 1, li)
         y_1 = np.squeeze(encoder_y_test(image_1)[0])
         z_1 = np.squeeze(encoder_z_test(image_1)[0])
         y_2 = np.squeeze(encoder_y_test(image_2)[0])
@@ -196,7 +203,10 @@ def test_icgan(configuration):
 
     ax.set_title("Interpolation between 2 people")
 
-    plt.imshow(interpolations)
+    if nc == 1:
+        plt.imshow(np.squeeze(interpolations), cmap='gray')
+    else:
+        plt.imshow(interpolations)
 
     fig.savefig(folder_name + '/images/interpolation.png')
     plt.close(fig)

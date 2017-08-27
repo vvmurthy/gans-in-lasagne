@@ -51,7 +51,11 @@ def show_reconstructions(images, reconstructions, li, nc, epoch, filename):
     ax.set_title("Example Generated Images: Epoch " + str(epoch))
 
     ax.set_xticklabels(labels, rotation='vertical', minor=False)
-    plt.imshow(image)
+    
+    if nc == 1:
+        plt.imshow(np.squeeze(image), cmap='gray')
+    else:
+        plt.imshow(image)
 
     fig.savefig(filename)
     plt.close('all')
@@ -74,6 +78,9 @@ def show_examples(images, y, labels, li, nc, epoch, filename):
 
     fig, ax = plt.subplots()
 
+    # For black and white (1 channel) data, we must drop singleton dimension
+    image = np.squeeze(image)
+
     ax.set_xlabel('Label Categories')
     ax.set_xticks(np.arange(0, li * len(labels), li) + (li / 2), minor=False)
     ax.set_yticks([])
@@ -82,7 +89,10 @@ def show_examples(images, y, labels, li, nc, epoch, filename):
     ax.set_title("Example Generated Images: Epoch " + str(epoch))
 
     ax.set_xticklabels(labels, rotation='vertical', minor=False)
-    plt.imshow(image)
+    if nc == 1:
+        plt.imshow(np.squeeze(image), cmap='gray')
+    else:
+        plt.imshow(image)
 
     fig.savefig(filename)
     plt.close('all')

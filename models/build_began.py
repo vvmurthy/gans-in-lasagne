@@ -43,7 +43,7 @@ def nearest_neighbor(network, name, prev_name, li, scale_factor):
     return network
     
     
-def make_train_fns(li, gamma_in, num_filters):
+def make_train_fns(li, gamma_in, num_filters, offset):
 
     # defines variables
     print("Building model and compiling functions...")
@@ -51,8 +51,8 @@ def make_train_fns(li, gamma_in, num_filters):
     # Builds discriminator and generator
     k_t = T.fscalar('k_t')
     gamma = theano.compile.shared(gamma_in)
-    discriminator, input_var = build_discriminator(li, num_filters)
-    generator, z_var = build_generator(li, num_filters)
+    discriminator, input_var = build_discriminator(li, num_filters, offset)
+    generator, z_var = build_generator(li, num_filters, offset)
     
     # Gets output image from generator, discriminator
     # as well as reconstruction of generated image from discriminator
@@ -90,7 +90,7 @@ def make_train_fns(li, gamma_in, num_filters):
     return generator, discriminator, gen_train_fn, gen_fn, dis_train_fn
 
 
-def build_generator(li, num_filters):
+def build_generator(li, num_filters, offset):
 
     z_var = T.fmatrix('z_var')
     generator = {}
@@ -125,10 +125,6 @@ def build_generator(li, num_filters):
 
     # calculates repeats - we assume li of 2^x where x is a positive integer - (e.g. 64, 128, 32, etc)
     repeat_num = int(np.log2(np.array(li)) - 3)
-    
-    # Allows a delay before starting to increase filters
-    offset = 5
-
 
     for n in range(0, repeat_num + 1):
 
@@ -189,7 +185,7 @@ def build_generator(li, num_filters):
     return generator, z_var
 
 
-def build_discriminator(li, num_filters):
+def build_discriminator(li, num_filters, offset):
 
     input_var = T.tensor4('input_var')
     elu = lasagne.nonlinearities.elu
@@ -214,7 +210,6 @@ def build_discriminator(li, num_filters):
                     str(output_dims)])
 
     repeat_num = int(np.log2(np.array([li])) - 3)
-    offset = 5
 
     for n in range(0, repeat_num):
 
