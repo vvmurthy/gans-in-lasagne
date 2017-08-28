@@ -37,9 +37,9 @@ def init_config():
     configuration['images_in_mem'] = 12000
     configuration['lr'] = 0.0002 # Perarnau et al use 0.0002
     configuration['num_epochs'] = 25
-    configuration['im_dir'] = os.getcwd() + '/mnist/'
-    configuration['folder_name'] = 'icgan_mnist'
-    configuration['dataset'] = ['mnist']
+    configuration['im_dir'] = os.getcwd() + '/celeba/'
+    configuration['folder_name'] = 'icgan_celeba'
+    configuration['dataset'] = ['celeba']
     configuration['file_loader'] = None
     configuration['model'] = 'icgan'
     configuration['dataset_loader'] = None
