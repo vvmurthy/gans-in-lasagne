@@ -5,7 +5,7 @@
 The goal of this repo is to implement several different Generative Adversarial Networks in Theano + Lasagne. So far, we support:
 
 * [Invertible Conditional GANs for Image Editing](https://arxiv.org/abs/1611.06355) from November 2016. 
-* (WIP) [Boundary Equillibrium Generative Adversarial Networks](https://arxiv.org/abs/1703.10717) from 2017.
+* [Boundary Equillibrium Generative Adversarial Networks](https://arxiv.org/abs/1703.10717) from 2017.
 
 Our IcGAN implementation is based off of the author's Torch [implementation](https://github.com/Guim3/IcGAN), and the Lasagne DCGAN [Gist](https://gist.github.com/f0k/738fa2eedd9666b78404ed1751336f56) and MNIST [demo](https://github.com/Lasagne/Lasagne/blob/master/examples/mnist.py).
 
@@ -77,7 +77,7 @@ Currently, the test for IcGAN will generate an interpolation, a swap, and a reco
 	python main.py test
 ```
 
-To use the pretrained models, edit `config.py` to have the variable `folder_name` point to `icgan_celeba`.
+To use the pretrained models, edit `config.py` to have the variable `folder_name` point to the correct folder (e.g. to use IcGAN celebA models, `configuration['folder_name'] = 'icgan_celeba'`)
 
 ## ICGAN Results
 
@@ -107,9 +107,18 @@ These results are from the pretrained models provided, trained according to defa
 
 ![alt text](icgan_mnist/images/interpolation.png "Interpolation on MNIST")
 
-## BEGAN Results (to Come)
+## BEGAN Results
 
-These examples are from pretrained models provided, trained according to default specifications.
+These examples are from pretrained models provided, trained with no increase in filters, 64 filters and `gamma = 0.7` on CelebA
+
+#### Interpolation on CelebA
+
+![alt text](began_celeba/images/interpolation.png "BEGAN Interpolation on CelebA")
+
+#### Example Generations on CelebA
+
+![alt text](began_celeba/images/examples.png "BEGAN Examples on CelebA")
+
 
 ### Adding new models to this repo
 
@@ -132,9 +141,6 @@ Batch iterators, and many methods to display example images are provided in the 
 ### To-Do
 
 This repo is still a work in progress. Tasks to come include:
-* Providing pretrained models for BEGAN (and possibly IcGAN on MNIST)
-* Adding examples to `README`
-* Providing a test function for `began`
 * Rewriting `train` and `test` functions to use variables from dict more easily
 * Adding additional tests to `config.py` to ensure invalid configs are not entered
 * Increasing the number of datasets available to be loaded + models available
