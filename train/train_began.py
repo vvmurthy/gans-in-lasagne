@@ -130,14 +130,15 @@ def train_began(configuration):
             print("Decaying Learning rate: Epoch " + str(epoch))
             lr = lr / 2
 
-        # Create 100 example generated images after each epoch
-        sets = 100
-        val_ims = np.zeros((bz * sets, nc, li, li))
-        for st in range(0, sets):
-            noise = np.array(np.random.uniform(-1, 1, (bz, 8*8))).astype(np.float32)
+        # Create num_examples_row ** 2 generated images
+        num_examples_row = 10        
+        max_ims = int(num_examples_row ** 2 / bz) + 1
+        val_ims = np.zeros((max_ims * bz, nc, li, li))
+        for st in range(0, max_ims):
+            noise = z_var(bz, num_hidden)
             val_ims[bz * st: bz * st + bz] = gen_fn(noise)
 
-        show_examples_unlabeled(val_ims, li, nc, epoch, 
+        show_examples_unlabeled(val_ims, num_examples_row, li, nc, epoch, 
                                 base + 'images/epoch' + str(epoch) + '.png')
 
     # Make graph with training statistics

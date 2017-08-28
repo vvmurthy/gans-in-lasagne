@@ -2,6 +2,7 @@ import lasagne
 import numpy as np
 import theano
 import theano.tensor as T
+from math import sqrt
 
 from utils.gen_utils import product
 
@@ -51,7 +52,7 @@ def make_train_fns(li, gamma_in, num_filters, num_hidden, offset):
     # Builds discriminator and generator
     k_t = T.fscalar('k_t')
     gamma = theano.compile.shared(gamma_in)
-    discriminator, input_var = build_discriminator(li, num_filters, offset)
+    discriminator, input_var = build_discriminator(li, num_filters, num_hidden, offset)
     generator, z_var = build_generator(li, num_filters, num_hidden, offset)
     
     # Gets output image from generator, discriminator

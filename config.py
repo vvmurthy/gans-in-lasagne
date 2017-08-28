@@ -1,9 +1,11 @@
 import os
+from math import sqrt
 import datasets.celeba as celeba
 import datasets.mnist as mnist
 from train.train_began import  train_began
 from train.train_icgan import train_icgan
 from test.test_icgan import test_icgan
+from test.test_began import test_began
 from utils.icgan_utils import modify_y, modify_y_celeba, randomize_y
 from utils.icgan_utils import randomize_y_celeba
 from utils.z_vars import z_var_uniform
@@ -38,10 +40,10 @@ def init_config():
     configuration['lr'] = 0.0002 # Perarnau et al use 0.0002
     configuration['num_epochs'] = 25
     configuration['im_dir'] = os.getcwd() + '/celeba/'
-    configuration['folder_name'] = 'icgan_celeba'
+    configuration['folder_name'] = 'began_celeba'
     configuration['dataset'] = ['celeba']
     configuration['file_loader'] = None
-    configuration['model'] = 'icgan'
+    configuration['model'] = 'began'
     configuration['dataset_loader'] = None
     configuration['batch_iterator'] = None
     configuration['train_function'] = None
@@ -52,10 +54,11 @@ def init_config():
     #   - num_filters = the number of filters to use (N in Berthelot et al)
     #   - k_t = initial value for k_t in Berthelot et al (they use 0)
     #   - offset = Berthelot et al train by linearly increasing number of filters
-    #   - after strided convolution or nearest neighbor resize. This offsets
-    #   - the start of linearly increasing number of filters for modest hardware
-    #   - I use 5 ( no increase in filters) because of hardware limitations
-    #   - num_hidden - the length of variable z (input to generator)
+    #   after strided convolution or nearest neighbor resize. This offsets
+    #   the start of linearly increasing number of filters for modest hardware
+    #   I use 5 ( no increase in filters) because of hardware limitations
+    #   - num_hidden = the length of variable z (input to generator)
+    #   - z_var = the method of generating z (so far there is only support for 1 method)
     if configuration['model'] == 'began':
         configuration['gamma'] = 0.7
         configuration['num_filters'] = 64
@@ -89,6 +92,11 @@ def check_config(configuration):
     # Check dataset + combinations are supported
     assert ('celeba' in configuration['dataset'] or 'mnist' in configuration['dataset']
             or 'celeba-128' in configuration['dataset']), "Dataset not supported"
+            
+    # Check that if BEGAN is used, the number of hidden units is a square number
+    if configuration['model'] == 'began':
+        assert (int(sqrt(configuration['num_hidden'])) == sqrt(configuration['num_hidden'])
+        ),"Z vector length for BEGAN must be square of integer"
             
     # Check folders exist, otherwise make them
     base = os.getcwd() + '/' + configuration['folder_name'] + '/'

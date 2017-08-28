@@ -35,9 +35,8 @@ def show_training_stats_graph(gen_train_err, dis_train_err, third_error, num_epo
 
 
 # Show 100 generated images as examples
-def show_examples_unlabeled(images, li, nc, epoch, filename):
+def show_examples_unlabeled(images, num_examples_row, li, nc, epoch, filename):
 
-    num_examples_row = 10
     image = np.zeros((li * num_examples_row, li * num_examples_row, nc)).astype(np.float32)
 
     example_count = 0
@@ -62,5 +61,5 @@ def show_examples_unlabeled(images, li, nc, epoch, filename):
     else:
         plt.imshow(image)
 
-    fig.savefig(filename)
+    fig.savefig(filename, bbox_inches='tight')
     plt.close('all')
