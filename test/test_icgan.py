@@ -1,10 +1,10 @@
 import os
-
 import lasagne
 import matplotlib.pyplot as plt
 import numpy as np
 
 from utils.gen_utils import interpolate_vector, deprocess_image
+
 from models.build_encoders import build_encoder_z, build_encoder_y
 from models.build_gans import make_train_fns
 
@@ -30,6 +30,7 @@ def test_icgan(configuration):
     nc = configuration['nc']
     lr = configuration['lr']
     bz = configuration['bz']
+    num_hidden = configuration['num_hidden']
     lab_ln = configuration['lab_ln']
     folder_name = configuration['folder_name']
     modify_y = configuration['modify_y']
@@ -40,8 +41,8 @@ def test_icgan(configuration):
     labels = configuration['labels']
 
     # Build GAN + Encoder
-    generator, discriminator, gen_train_fn, gen_fn, dis_train_fn = make_train_fns(bz, li, nc, lab_ln)
-    encoder_z, encoder_z_train, encoder_z_test = build_encoder_z(li, nc, lr)
+    generator, discriminator, gen_train_fn, gen_fn, dis_train_fn = make_train_fns(bz, li, nc, lab_ln, num_hidden)
+    encoder_z, encoder_z_train, encoder_z_test = build_encoder_z(li, nc, num_hidden, lr)
     encoder_y, encoder_y_train, encoder_y_test = build_encoder_y(li, nc, lab_ln, lr)
 
     # Set params
@@ -86,7 +87,7 @@ def test_icgan(configuration):
         generated_ims = gen_fn(z_permutations, y_permutations)
 
         # Map reconstructions to main image
-        all_reconstructions[li*index: li*index + li, 0: li, :] = deprocess_image(image, li, nc)
+        all_reconstructions[li*index: li*index + li, 0: li, :] = deprocess_image(image[0, :, :, :], li, nc)
 
         for n in range(0, generated_ims.shape[0]):
             all_reconstructions[li*index: li*index + li, li*(n + 1): li*(n + 1) + li,
@@ -94,7 +95,6 @@ def test_icgan(configuration):
 
     # Plot the reconstruction
     fig, ax = plt.subplots()
-    plt.gcf().subplots_adjust(bottom=0.3)
 
     ax.set_yticks([])
     ax.set_xticks(np.arange(0, li * len(labels) + 2*li, li) + (li / 2), minor=False)
@@ -109,7 +109,7 @@ def test_icgan(configuration):
     else:
         plt.imshow(all_reconstructions)
 
-    fig.savefig(folder_name + '/images/reconstructions.png')
+    fig.savefig(folder_name + '/images/reconstructions.png', bbox_inches='tight')
     plt.close(fig)
 
     # Swap
@@ -153,7 +153,7 @@ def test_icgan(configuration):
 
     # Plot the swapped images
     x_lab = ['Original', 'Reconstruction', 'Swapped y']
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(3,2))
 
     ax.set_yticks([])
     ax.set_xticks(np.arange(0, li * 3, li) + (li / 2), minor=False)
@@ -169,7 +169,7 @@ def test_icgan(configuration):
     else:
         plt.imshow(swap_image)
 
-    fig.savefig(folder_name + '/images/swapped.png')
+    fig.savefig(folder_name + '/images/swapped.png', bbox_inches='tight')
     plt.close(fig)
 
     # Interpolation
@@ -210,5 +210,5 @@ def test_icgan(configuration):
     else:
         plt.imshow(interpolations)
 
-    fig.savefig(folder_name + '/images/interpolation.png')
+    fig.savefig(folder_name + '/images/interpolation.png', bbox_inches='tight')
     plt.close(fig)

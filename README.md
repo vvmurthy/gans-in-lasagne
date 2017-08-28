@@ -83,17 +83,29 @@ To use the pretrained models, edit `config.py` to have the variable `folder_name
 
 These results are from the pretrained models provided, trained according to default specifications. These models were trained on the CelebA dataset with the 18 attributes from Perarnau et al. 
 
-#### Reconstructions of Real Faces with Different Attributes
+#### Reconstructions of Real Faces with Different Attributes on CelebA
 
 ![alt text](icgan_celeba/images/reconstructions.png "Reconstructions")
 
-#### Swapped Faces
+#### Swapped Attributes on CelebA
 
 ![alt text](icgan_celeba/images/swapped.png "Swapped")
 
-#### Interpolation
+#### Interpolation on CelebA
 
 ![alt text](icgan_celeba/images/interpolation.png "Interpolation")
+
+#### Reconstructions of Real Images with Different Attributes on MNIST
+
+![alt text](icgan_mnist/images/reconstructions.png "Reconstructions on MNIST")
+
+#### Swapped Attributes on MNIST
+
+![alt text](icgan_mnist/images/swapped.png "Swapped on MNIST")
+
+#### Interpolation on MNIST
+
+![alt text](icgan_mnist/images/interpolation.png "Interpolation on MNIST")
 
 ## BEGAN Results (to Come)
 

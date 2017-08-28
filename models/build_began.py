@@ -43,7 +43,7 @@ def nearest_neighbor(network, name, prev_name, li, scale_factor):
     return network
     
     
-def make_train_fns(li, gamma_in, num_filters, offset):
+def make_train_fns(li, gamma_in, num_filters, num_hidden, offset):
 
     # defines variables
     print("Building model and compiling functions...")
@@ -52,7 +52,7 @@ def make_train_fns(li, gamma_in, num_filters, offset):
     k_t = T.fscalar('k_t')
     gamma = theano.compile.shared(gamma_in)
     discriminator, input_var = build_discriminator(li, num_filters, offset)
-    generator, z_var = build_generator(li, num_filters, offset)
+    generator, z_var = build_generator(li, num_filters, num_hidden, offset)
     
     # Gets output image from generator, discriminator
     # as well as reconstruction of generated image from discriminator
@@ -90,20 +90,20 @@ def make_train_fns(li, gamma_in, num_filters, offset):
     return generator, discriminator, gen_train_fn, gen_fn, dis_train_fn
 
 
-def build_generator(li, num_filters, offset):
+def build_generator(li, num_filters, num_hidden, offset):
 
     z_var = T.fmatrix('z_var')
     generator = {}
     details = [['Layer Name', 'Dims in', 'shape of layer', 'Dims out']]
 
     name = 'gen_z_var'
-    input_shape = (None, 8*8) #Nz is 64 in Berthelot et al
+    input_shape = (None, num_hidden) 
     generator[name] = lasagne.layers.InputLayer(shape=input_shape, input_var=z_var)
     output_dims = input_shape
     
     prev_name = name
     name = 'fc_encode'
-    num_units = 8 * 8 * num_filters
+    num_units = num_hidden * num_filters
     generator[name] = lasagne.layers.DenseLayer(generator[prev_name], num_units, nonlinearity=None)
     prev_output_dims = output_dims
     output_dims = lasagne.layers.get_output_shape(generator[name])
@@ -113,7 +113,8 @@ def build_generator(li, num_filters, offset):
     # Reshape to batchsize x num_filters x 8 x 8
     prev_name = name
     name = 'gen_reshape'
-    generator[name] = lasagne.layers.ReshapeLayer(generator[prev_name], ([0], num_filters, 8, 8))
+    new_size = int(sqrt(num_hidden))
+    generator[name] = lasagne.layers.ReshapeLayer(generator[prev_name], ([0], num_filters, new_size, new_size))
     prev_output_dims = output_dims
     output_dims = lasagne.layers.get_output_shape(generator[name])
     details.append([name, str(prev_output_dims), str('reshape to 4D'),
@@ -185,7 +186,7 @@ def build_generator(li, num_filters, offset):
     return generator, z_var
 
 
-def build_discriminator(li, num_filters, offset):
+def build_discriminator(li, num_filters, num_hidden, offset):
 
     input_var = T.tensor4('input_var')
     elu = lasagne.nonlinearities.elu
@@ -253,7 +254,7 @@ def build_discriminator(li, num_filters, offset):
 
     prev_name = name
     name = 'fc_encode'
-    num_units = 8 * 8 # Authors use Nh of 64
+    num_units = num_hidden 
     discriminator[name] = lasagne.layers.DenseLayer(discriminator[prev_name], num_units, nonlinearity=None)
     prev_output_dims = output_dims
     output_dims = lasagne.layers.get_output_shape(discriminator[name])
@@ -262,7 +263,7 @@ def build_discriminator(li, num_filters, offset):
                     
     prev_name = name
     name = 'fc_decode'
-    num_units = 8 * 8 * num_filters
+    num_units = num_hidden * num_filters
     discriminator[name] = lasagne.layers.DenseLayer(discriminator[prev_name], num_units, nonlinearity=None)
     prev_output_dims = output_dims
     output_dims = lasagne.layers.get_output_shape(discriminator[name])
@@ -271,7 +272,8 @@ def build_discriminator(li, num_filters, offset):
 
     prev_name = name
     name = 'reshape'
-    discriminator[name] = lasagne.layers.ReshapeLayer(discriminator[prev_name], ([0], num_filters, 8, 8))
+    new_size = int(sqrt(num_hidden))
+    discriminator[name] = lasagne.layers.ReshapeLayer(discriminator[prev_name], ([0], num_filters, new_size, new_size))
     prev_output_dims = output_dims
     output_dims = lasagne.layers.get_output_shape(discriminator[name])
     details.append([name, str(prev_output_dims), str('reshape to 4D'),

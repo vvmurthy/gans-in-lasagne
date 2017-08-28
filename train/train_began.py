@@ -20,6 +20,7 @@ def train_began(configuration):
     bz = configuration['bz']
     li = configuration['li']
     nc = configuration['nc']
+    num_hidden = configuration['num_hidden']
     folder_name = configuration['folder_name']
 
     # Set variables from dataset
@@ -28,6 +29,7 @@ def train_began(configuration):
     # Set file loader, iterator
     batch_iterator = iterate_minibatches_unconditional
     dataset_loader = configuration['dataset_loader']
+    z_var = configuration['z_var']
 
     # Set began-specific variables
     gamma = configuration['gamma']
@@ -45,7 +47,8 @@ def train_began(configuration):
 
     # Make training functions
     print("Making Training Functions...")
-    generator, discriminator, gen_train_fn, gen_fn, dis_train_fn = make_train_fns(li, gamma, num_filters, offset)
+    generator, discriminator, gen_train_fn, gen_fn, dis_train_fn = make_train_fns(li, 
+                                            gamma, num_filters, num_hidden, offset)
 
     # Load in params if training incomplete
     try:
@@ -86,7 +89,7 @@ def train_began(configuration):
             for inputs in batch_iterator(X_files_mem, bz, shuffle=True):
 
                 # Create noise vector
-                noise = np.array(np.random.uniform(-1, 1, (bz, 8*8))).astype(np.float32)
+                noise = z_var(bz, num_hidden)
 
                 # Train the generator
                 fake_out, ims, gen_train_err_epoch = gen_train_fn(noise, lr)

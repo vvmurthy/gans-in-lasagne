@@ -24,6 +24,7 @@ def train_icgan(configuration):
     nc = configuration['nc']
     lab_ln = configuration['lab_ln']
     folder_name = configuration['folder_name']
+    num_hidden = configuration['num_hidden']
 
     # Set variables from dataset
     X_files_train = configuration['X_files_train']
@@ -32,10 +33,11 @@ def train_icgan(configuration):
     y_val = configuration['y_val']
     labels = configuration['labels']
 
-    # Set file loader, iterator
+    # Set file loader, iterator, noise generator
     batch_iterator = iterate_minibatches_conditional
     dataset_loader = configuration['dataset_loader']
     randomize_y = configuration['randomize_y']
+    z_var = configuration['z_var']
 
     # Make folders for storing models
     base = os.getcwd() + '/' + folder_name + '/'
@@ -47,7 +49,7 @@ def train_icgan(configuration):
 
     # Make training functions
     print("Making Training Functions...")
-    generator, discriminator, gen_train_fn, gen_fn, dis_train_fn = make_train_fns(bz, li, nc, lab_ln)
+    generator, discriminator, gen_train_fn, gen_fn, dis_train_fn = make_train_fns(bz, li, nc, lab_ln, num_hidden)
 
     # Load in params if training incomplete
     try:
@@ -79,6 +81,9 @@ def train_icgan(configuration):
     print("Starting cGAN Training...")
     for epoch in range(start_epoch, num_epochs):
         start_time = time.time()
+        dis_train_real = 0
+        dis_train_fake = 0
+        gen_ = 0
 
         # Train cGAN
         num_batches = 0
@@ -90,18 +95,17 @@ def train_icgan(configuration):
 
             for batch in batch_iterator(X_files_mem, y_train_mem, bz, shuffle=True):
                 inputs, targets = batch
-                print(num_batches)
 
                 # expands dims for training (generator + discriminator expect 3D input)
                 targets = np.expand_dims(targets, 2)
 
                 # Create noise vector
-                noise = np.array(np.random.uniform(-1, 1, (bz, 100))).astype(np.float32)
+                noise = z_var(bz, num_hidden)
                 y_fake = randomize_y(targets)
 
                 # Train the generator
                 fake_out, ims, gen_train_err_epoch = gen_train_fn(noise, targets, lr)
-                gen_train_err[epoch] += gen_train_err_epoch
+                gen_ += gen_train_err_epoch
 
                 # Train the discriminator
                 #   + real_out - predictions on real images + matching y vectors
@@ -109,12 +113,15 @@ def train_icgan(configuration):
                 real_out, real_out_yfake, dis_train_err_real_epoch, dis_train_err_fake_epoch = dis_train_fn(inputs, noise,
                                                                                                             targets, y_fake,
                                                                                                             lr)
-                dis_train_err_real[epoch] += dis_train_err_real_epoch
-                dis_train_err_fake[epoch] += dis_train_err_fake_epoch
+                dis_train_real += dis_train_err_real_epoch
+                dis_train_fake += dis_train_err_fake_epoch
 
                 num_batches += 1
 
         # Display training stats
+        gen_train_err[epoch] = gen_
+        dis_train_err_real[epoch] = dis_train_real
+        dis_train_err_fake[epoch] = dis_train_fake
         print("Epoch {} of {} took {:.3f} minutes".format(epoch + 1, num_epochs, (time.time() - start_time) / np.float32(60)))
         print("  Generator Error:\t\t{}".format(gen_train_err[epoch] / num_batches))
         print("  Discriminator Error on real ims:\t\t{}".format(dis_train_err_real[epoch] / num_batches))
@@ -140,7 +147,7 @@ def train_icgan(configuration):
         sets = 10
         val_ims = np.zeros((bz * sets, nc, li, li))
         for st in range(0, sets):
-            noise = np.array(np.random.uniform(-1, 1, (bz, 100))).astype(np.float32)
+            noise = z_var(bz, 100)
             targets = np.expand_dims(y_val[bz * st: bz * st + bz], 2).astype(np.float32)
             val_ims[bz * st: bz * st + bz] = gen_fn(noise, targets)
 
@@ -158,7 +165,7 @@ def train_icgan(configuration):
     print("Building Encoder Models...")
 
     # Build Encoder
-    encoder_z, encoder_z_train, encoder_z_test = build_encoder_z(li, nc, lr)
+    encoder_z, encoder_z_train, encoder_z_test = build_encoder_z(li, nc, num_hidden, lr)
     encoder_y, encoder_y_train, encoder_y_test = build_encoder_y(li, nc, lab_ln, lr)
 
     # Load in params if partial training
@@ -195,7 +202,7 @@ def train_icgan(configuration):
             _, targets = batch
             targets = targets.astype(np.float32)
             gen_targets = np.expand_dims(targets, 2).astype(np.float32)
-            noise = np.array(np.random.uniform(-1, 1, (bz, 100))).astype(np.float32)
+            noise = z_var(bz, num_hidden)
             gen_images = gen_fn(noise, gen_targets)
             encoder_z_loss[epoch] += encoder_z_train(gen_images, noise)
             encoder_y_loss[epoch] += encoder_y_train(gen_images, targets)

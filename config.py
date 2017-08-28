@@ -6,6 +6,7 @@ from train.train_icgan import train_icgan
 from test.test_icgan import test_icgan
 from utils.icgan_utils import modify_y, modify_y_celeba, randomize_y
 from utils.icgan_utils import randomize_y_celeba
+from utils.z_vars import z_var_uniform
 
 
 def init_config():
@@ -54,17 +55,22 @@ def init_config():
     #   - after strided convolution or nearest neighbor resize. This offsets
     #   - the start of linearly increasing number of filters for modest hardware
     #   - I use 5 ( no increase in filters) because of hardware limitations
+    #   - num_hidden - the length of variable z (input to generator)
     if configuration['model'] == 'began':
         configuration['gamma'] = 0.7
         configuration['num_filters'] = 64
         configuration['k_t'] = 0
         configuration['offset'] = 5
         configuration['train_function'] = train_began
-        configuration['test_function'] = None
+        configuration['test_function'] = test_began
+        configuration['num_hidden'] = 64
+        configuration['z_var'] = z_var_uniform
     ##### Hyperparameters for ICGAN
     if configuration['model'] == 'icgan':
         configuration['train_function'] = train_icgan
         configuration['test_function'] = test_icgan
+        configuration['num_hidden'] = 100
+        configuration['z_var'] = z_var_uniform
         if 'mnist' in configuration['dataset']:
             configuration['randomize_y'] = randomize_y
             configuration['modify_y'] = modify_y
@@ -83,6 +89,14 @@ def check_config(configuration):
     # Check dataset + combinations are supported
     assert ('celeba' in configuration['dataset'] or 'mnist' in configuration['dataset']
             or 'celeba-128' in configuration['dataset']), "Dataset not supported"
+            
+    # Check folders exist, otherwise make them
+    base = os.getcwd() + '/' + configuration['folder_name'] + '/'
+    if not os.path.isdir(base):
+        os.mkdir(base)
+        os.mkdir(base + 'models/')
+        os.mkdir(base + 'images/')
+        os.mkdir(base + 'stats/')
 
     # Check model is supported
     assert(configuration['model'] == 'icgan' or configuration['model'] == 'began'), "Model not implemented"
@@ -103,30 +117,35 @@ def config():
         configuration['lab_ln'] = 10
         configuration['li'] = 32
         configuration['dataset_loader'] = mnist.load_files
-
-        configuration['X_files_train'], configuration['y_train'], configuration['X_files_val'], \
-        configuration['y_val'], \
-        configuration['X_files_test'], configuration['y_test'], configuration['labels'] = mnist.load_xy(configuration['im_dir'])
+        configuration['dataset_init'] = mnist.load_xy
 
     elif 'celeba' in configuration['dataset'] and len(configuration['dataset']) == 1:
         configuration['nc'] = 3
         configuration['lab_ln'] = 18
         configuration['li'] = 64
         configuration['dataset_loader'] = celeba.load_files
-
-        configuration['X_files_train'], configuration['y_train'], configuration['X_files_val'], \
-        configuration['y_val'], \
-        configuration['X_files_test'], configuration['y_test'], configuration['labels'] = celeba.load_xy(configuration['im_dir'])
+        configuration['dataset_init'] = celeba.load_xy
 
     elif 'celeba-128' in configuration['dataset'] and len(configuration['dataset']) == 1:
         configuration['nc'] = 3
         configuration['lab_ln'] = 18
         configuration['li'] = 128
         configuration['dataset_loader'] = celeba.load_files
+        configuration['dataset_init'] = celeba.load_xy
 
-        configuration['X_files_train'], configuration['y_train'], configuration['X_files_val'], \
-        configuration['y_val'], \
-        configuration['X_files_test'], configuration['y_test'], configuration['labels'] = celeba.load_xy(configuration['im_dir'])
+    # Save config dictionary 
+    try:
+        import pickle
+        filename = os.getcwd() +  '/' + configuration['folder_name'] + '/stats/config.pkl'
+        pickle.dump(configuration, open(filename, 'wb'), 
+                    protocol=pickle.HIGHEST_PROTOCOL)
+    except ImportError:
+        pass
+
+
+    configuration['X_files_train'], configuration['y_train'], configuration['X_files_val'], \
+    configuration['y_val'], \
+    configuration['X_files_test'], configuration['y_test'], configuration['labels'] = configuration['dataset_init'](configuration['im_dir'])
 
     # Configure images in memory if not already done
     if configuration['images_in_mem'] == None:

@@ -79,7 +79,7 @@ def build_encoder_y(li, nc, lab_ln, lr):
     return encoder, train_fn, val_fn
 
 
-def build_encoder_z(li, nc, lr):
+def build_encoder_z(li, nc, num_hidden, lr):
     z_var = T.fmatrix('z_var')
     input_var = T.tensor4('inputs')
     encoder = {}
@@ -123,7 +123,7 @@ def build_encoder_z(li, nc, lr):
 
     prev_name = name
     name = 'out'
-    num_units = 100
+    num_units = num_hidden
     
     # We restrict output to tanh domain (same as input noise)
     encoder[name] = lasagne.layers.DenseLayer(encoder[prev_name],

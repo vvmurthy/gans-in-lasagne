@@ -22,7 +22,7 @@ def batch_conv(network, prev_name, name, num_filters, filter_size, stride, pad, 
     return network
     
     
-def make_train_fns(bz, li, nc, lab_ln):
+def make_train_fns(bz, li, nc, lab_ln, num_hidden):
 
     # defines variables
     print("Building model and compiling functions...")
@@ -33,7 +33,7 @@ def make_train_fns(bz, li, nc, lab_ln):
     # Builds discriminator and generator
     # y_var is in format [batchsize, categories, 1] and is flattened out in build_generator
     discriminator, input_var = build_discriminator(y_var, li, nc, lab_ln)
-    generator, z_var = build_generator(y_3, li, nc, lab_ln)
+    generator, z_var = build_generator(y_3, li, nc, lab_ln, num_hidden)
     
     # Important sections of code:
     #       "T.reshape..." - convert y_var to 4D tensor for use in discriminator
@@ -73,15 +73,15 @@ def make_train_fns(bz, li, nc, lab_ln):
     return generator, discriminator, gen_train_fn, gen_fn, dis_train_fn
 
 
-def build_generator(y_var, li, nc, lab_ln):
+def build_generator(y_var, li, nc, lab_ln, num_hidden):
 
     z_var = T.fmatrix('z_var')
     generator = {}
     details = [['Layer Name', 'Dims in', 'shape of layer', 'Dims out']]
 
-    # input: 100dim
+    # input noise
     name = 'gen_z_var'
-    input_shape = (None, 100)
+    input_shape = (None, num_hidden)
     generator[name] = lasagne.layers.InputLayer(shape=input_shape, input_var=z_var)
 
     # Input: y vector
@@ -102,7 +102,7 @@ def build_generator(y_var, li, nc, lab_ln):
     # Reshape to batchsize x length x 1 x 1
     prev_name = name
     name = 'gen_reshape'
-    generator[name] = lasagne.layers.ReshapeLayer(generator[prev_name], ([0], 100 + lab_ln, 1, 1))
+    generator[name] = lasagne.layers.ReshapeLayer(generator[prev_name], ([0], num_hidden + lab_ln, 1, 1))
     prev_output_dims = output_dims
     output_dims = lasagne.layers.get_output_shape(generator[name])
     details.append([name, str(prev_output_dims), str('reshape to 4D'),
