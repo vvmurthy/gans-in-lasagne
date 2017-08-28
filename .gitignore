@@ -1,6 +1,7 @@
 # Used to store datasets
 celeba/
 mnist/
+archive/
 
 # pyc files
 *.pyc
