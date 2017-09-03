@@ -6,3 +6,5 @@ archive/
 # pyc files
 *.pyc
 
+# all epoch-level training files
+*epoch
