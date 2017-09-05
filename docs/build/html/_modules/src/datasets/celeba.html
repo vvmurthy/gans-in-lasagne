@@ -1,0 +1,365 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>src.datasets.celeba &#8212; GANs in Lasagne 0.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for src.datasets.celeba</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy.misc</span> <span class="k">as</span> <span class="nn">misc</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+
+<div class="viewcode-block" id="CelebA"><a class="viewcode-back" href="../../../classes/datasets.html#src.datasets.celeba.CelebA">[docs]</a><span class="k">class</span> <span class="nc">CelebA</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        datasets.CelebA(celeba_dir= os.getcwd + &#39;/celeba/&#39;, **kwargs)</span>
+<span class="sd">        CelebA dataset loading utilities.</span>
+<span class="sd">        Initializes CelebA dataset (images + 18 labels from [2]),</span>
+<span class="sd">        and provides the following required functions:</span>
+<span class="sd">        * ``preprocess_im``</span>
+<span class="sd">        * ``load_files``</span>
+<span class="sd">        *``modify_y``</span>
+<span class="sd">        *``randomize_y``</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        celeba_dir : a string</span>
+<span class="sd">            The directory where the CelebA images are stored. ``celeba_dir`` is assumed</span>
+<span class="sd">            to have the following structure:</span>
+<span class="sd">            + ``celeba_dir``</span>
+<span class="sd">                + ``list_attr_celeba.txt``</span>
+<span class="sd">                +``img_align_celeba``</span>
+<span class="sd">                + ``list_eval_partition.txt``</span>
+
+<span class="sd">            This string is assumed to be an absolute path.</span>
+<span class="sd">        **kwargs</span>
+<span class="sd">            Any additional keywords that override a default attribute (below).</span>
+<span class="sd">        Functions</span>
+<span class="sd">        ---------</span>
+<span class="sd">        load_files : Function</span>
+<span class="sd">            Load images to memory and preprocess images into nc x li x li format and [-1, 1] range.</span>
+<span class="sd">        modify_y : Function</span>
+<span class="sd">            Generated ``lab_ln + 1`` number of permutations of a given label vector.</span>
+<span class="sd">            Allows set of images with same z vector but different y vectors to be</span>
+<span class="sd">            created. Follows constraints of labels in dataset (only 1 hair color, only 1 hair texture)</span>
+<span class="sd">        randomize_y : Function</span>
+<span class="sd">            Returns a random y vector. Generates permutations of same y vector from `modify_y` then</span>
+<span class="sd">            selects a random vector to return.</span>
+<span class="sd">        Attributes</span>
+<span class="sd">        ----------</span>
+<span class="sd">        nc : int</span>
+<span class="sd">            The number of channels images in CelebA have. This is locked at 3.</span>
+<span class="sd">        lab_ln : int</span>
+<span class="sd">            The number of labels in CelebA. this is locked at 18.</span>
+<span class="sd">        li : int</span>
+<span class="sd">            The length of an input image. By default, this is 64 pix x 64 pix.</span>
+<span class="sd">            Images are cropped and resized down to 64 x 64.</span>
+<span class="sd">        images_in_mem : int</span>
+<span class="sd">            The amount of images to read into memory from the the hard drive. By</span>
+<span class="sd">            default, this is set at 12,000.</span>
+<span class="sd">            of the dataset (50000).</span>
+<span class="sd">        X_files_train : 2D :class:`NdArray`</span>
+<span class="sd">            Contains absolute file paths for each image in CelebA train partition.</span>
+<span class="sd">        y_train : 2D :class:`NdArray`</span>
+<span class="sd">            Contains binarized labels for CelebA train partition.</span>
+<span class="sd">        X_files_val : 4D :class:`NdArray`</span>
+<span class="sd">            Contains absolute file paths for each image in CelebA validation partition.</span>
+<span class="sd">        y_val : 2D :class:`NdArray`</span>
+<span class="sd">            Contains binarized labels for CelebA validation partition.</span>
+<span class="sd">         X_files_test : 4D :class:`NdArray`</span>
+<span class="sd">            Contains absolute file paths for each image in CelebA test partition.</span>
+<span class="sd">        y_test : 2D :class:`NdArray`</span>
+<span class="sd">            Contains binarized labels for CelebA test partition.</span>
+<span class="sd">        labels : :class:`List` Object</span>
+<span class="sd">            Label names for MNIST. Contains descriptors such as ``[&#39;bald&#39;, &#39;heavy_makeup&#39; ...</span>
+<span class="sd">            &#39;blonde&#39;]``</span>
+<span class="sd">        References</span>
+<span class="sd">        ----------</span>
+<span class="sd">        .. [1] Ziwei Liu, Ping Luo, Xiaogang Wang, Xiaoou Tang (2015):</span>
+<span class="sd">            Deep Learning Face Attributes in the Wild. arXiv.</span>
+<span class="sd">            http://arxiv.org/abs/1411.7766</span>
+<span class="sd">            http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html</span>
+<span class="sd">        .. [2] Guim Perarnau, Joost van de Weijer, Bogdan Raducanu,</span>
+<span class="sd">            Jose M. Alvarez(2016):</span>
+<span class="sd">            A guide to convolution arithmetic for deep learning. arXiv.</span>
+<span class="sd">            https://arxiv.org/abs/1611.06355</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">celeba_dir</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span> <span class="o">+</span> <span class="s1">&#39;/celeba/&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dir</span> <span class="o">=</span> <span class="n">celeba_dir</span>
+
+        <span class="c1"># sets unchangeable params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nc</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lab_ln</span> <span class="o">=</span> <span class="mi">18</span>
+
+        <span class="c1"># sets changeable params</span>
+        <span class="k">if</span> <span class="s1">&#39;li&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">li</span> <span class="o">=</span> <span class="mi">64</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">li</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;li&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="s1">&#39;images_in_mem&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">images_in_mem</span> <span class="o">=</span> <span class="mi">12000</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">images_in_mem</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;images_in_mem&#39;</span><span class="p">]</span>
+
+        <span class="c1"># checks changeable params + formal args</span>
+        <span class="k">if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">li</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Length of an image must be &gt; 1&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">li</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Length of Image must be integer&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dir</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+                <span class="s2">&quot;Directory </span><span class="si">%s</span><span class="s2"> Not Found&quot;</span> <span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">dir</span>
+            <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">fl</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;list_eval_partition.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;list_attr_celeba.txt&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dir</span> <span class="o">+</span> <span class="n">fl</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+                    <span class="s1">&#39;File </span><span class="si">%s</span><span class="s1"> not found in </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span><span class="p">(</span><span class="n">fl</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dir</span><span class="p">)</span>
+                <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dir</span> <span class="o">+</span> <span class="s1">&#39;img_align_celeba&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+                <span class="s2">&quot;Images not located in </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dir</span> <span class="o">+</span> <span class="s1">&#39;img_align_celeba&#39;</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Initialize images in dataset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">X_files_train</span><span class="p">,</span> \
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_train</span><span class="p">,</span> \
+        <span class="bp">self</span><span class="o">.</span><span class="n">X_files_val</span><span class="p">,</span> \
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_val</span><span class="p">,</span> \
+        <span class="bp">self</span><span class="o">.</span><span class="n">X_files_test</span><span class="p">,</span> \
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_test</span><span class="p">,</span> \
+        <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_dataset</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">preprocess_im</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+
+        <span class="c1"># Load image</span>
+        <span class="n">im</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="n">im</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="c1"># Crop to [40:178, 30:168, 3]</span>
+        <span class="n">side_length</span> <span class="o">=</span> <span class="mi">138</span>
+        <span class="n">im</span> <span class="o">=</span> <span class="n">im</span><span class="p">[</span><span class="mi">40</span><span class="p">:</span> <span class="mi">40</span> <span class="o">+</span> <span class="n">side_length</span><span class="p">,</span> <span class="mi">30</span><span class="p">:</span> <span class="mi">30</span> <span class="o">+</span> <span class="n">side_length</span><span class="p">,</span> <span class="p">:]</span>
+
+        <span class="c1"># resize to li x li x 3</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">li</span> <span class="o">==</span> <span class="mi">138</span><span class="p">:</span>
+            <span class="n">im</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">imresize</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">li</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">li</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nc</span><span class="p">),</span> <span class="n">interp</span><span class="o">=</span><span class="s1">&#39;bilinear&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Swap to n_channels x image_size x image_size</span>
+        <span class="n">im</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Scale to range [-1, 1]</span>
+        <span class="n">im</span> <span class="o">=</span> <span class="p">(</span><span class="n">im</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="mi">255</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="mf">0.5</span><span class="p">))</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">im</span>
+
+    <span class="c1"># Loads files after minibatch iteration</span>
+    <span class="k">def</span> <span class="nf">load_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X_files</span><span class="p">,</span> <span class="n">num_samples</span><span class="p">):</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_samples</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">li</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">li</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">num_samples</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">preprocess_im</span><span class="p">(</span><span class="n">X_files</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">im</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_samples</span><span class="p">):</span>
+                <span class="n">X</span><span class="p">[</span><span class="n">im</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocess_im</span><span class="p">(</span><span class="n">X_files</span><span class="p">[</span><span class="n">im</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">X</span>
+
+    <span class="c1"># Generates 18 permutations of y</span>
+    <span class="c1"># y is a vector here</span>
+    <span class="k">def</span> <span class="nf">modify_y</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">binarize</span><span class="p">):</span>
+
+        <span class="c1"># Binarize y vector given certain threshold</span>
+        <span class="k">def</span> <span class="nf">binarize_y</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">threshhold</span><span class="p">):</span>
+
+            <span class="n">type_hair</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">16</span><span class="p">]</span>
+            <span class="n">color_hair</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">7</span><span class="p">]</span>
+
+            <span class="n">hair_type_index</span> <span class="o">=</span> <span class="n">type_hair</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">type_hair</span><span class="p">])]</span>
+            <span class="n">color_type_index</span> <span class="o">=</span> <span class="n">color_hair</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">color_hair</span><span class="p">])]</span>
+
+            <span class="n">y</span><span class="p">[</span><span class="n">type_hair</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="n">y</span><span class="p">[</span><span class="n">hair_type_index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+            <span class="n">y</span><span class="p">[</span><span class="n">color_hair</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="n">y</span><span class="p">[</span><span class="n">color_type_index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+            <span class="n">y</span><span class="p">[</span><span class="n">y</span> <span class="o">&lt;=</span> <span class="n">threshhold</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="n">y</span><span class="p">[</span><span class="n">y</span> <span class="o">&gt;</span> <span class="n">threshhold</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">return</span> <span class="n">y</span>
+
+        <span class="c1"># Binarize y</span>
+        <span class="k">if</span> <span class="n">binarize</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">binarize_y</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">type_hair</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">16</span><span class="p">]</span>
+        <span class="n">color_hair</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">7</span><span class="p">]</span>
+        <span class="n">y_vars</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">19</span><span class="p">,</span> <span class="mi">18</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="n">y_vars</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">y</span>
+
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">type_hair</span><span class="p">:</span>
+                <span class="n">temp</span><span class="p">[</span><span class="n">type_hair</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="n">temp</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">elif</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">color_hair</span><span class="p">:</span>
+                <span class="n">temp</span><span class="p">[</span><span class="n">color_hair</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="n">temp</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">temp</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">y_vars</span><span class="p">[</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">temp</span>
+
+        <span class="k">return</span> <span class="n">y_vars</span>
+
+    <span class="c1"># Generates fake y vectors for a given minibatch</span>
+    <span class="k">def</span> <span class="nf">randomize_y</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="n">random_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">random_y</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">modify_y</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">],</span> <span class="kc">False</span><span class="p">)[</span><span class="n">index</span><span class="p">,</span> <span class="p">:]</span>
+
+        <span class="k">return</span> <span class="n">random_y</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">init_dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">def</span> <span class="nf">train_test_split</span><span class="p">(</span><span class="n">X_files</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">celeba_dir</span><span class="p">):</span>
+            <span class="n">split</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">celeba_dir</span> <span class="o">+</span> <span class="s1">&#39;list_eval_partition.txt&#39;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">skiprows</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">usecols</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">first_val</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">first_test</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">split</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                <span class="k">if</span> <span class="n">first_val</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">split</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">first_val</span> <span class="o">=</span> <span class="n">n</span>
+                <span class="k">elif</span> <span class="n">first_test</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">split</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="n">first_test</span> <span class="o">=</span> <span class="n">n</span>
+
+            <span class="n">X_files_train</span> <span class="o">=</span> <span class="n">X_files</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">first_val</span><span class="p">]</span>
+            <span class="n">y_train</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">first_val</span><span class="p">]</span>
+
+            <span class="n">X_files_val</span> <span class="o">=</span> <span class="n">X_files</span><span class="p">[</span><span class="n">first_val</span><span class="p">:</span><span class="n">first_test</span><span class="p">]</span>
+            <span class="n">y_val</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="n">first_val</span><span class="p">:</span><span class="n">first_test</span><span class="p">]</span>
+
+            <span class="n">X_files_test</span> <span class="o">=</span> <span class="n">X_files</span><span class="p">[</span><span class="n">first_test</span><span class="p">:]</span>
+            <span class="n">y_test</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="n">first_test</span><span class="p">:]</span>
+
+            <span class="k">return</span> <span class="n">X_files_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">X_files_val</span><span class="p">,</span> <span class="n">y_val</span><span class="p">,</span> <span class="n">X_files_test</span><span class="p">,</span> <span class="n">y_test</span>
+
+        <span class="c1"># Creates labels</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dir</span> <span class="o">+</span> <span class="s1">&#39;list_attr_celeba.txt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">content</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)</span>
+
+        <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dir</span> <span class="o">+</span> <span class="s1">&#39;list_attr_celeba.txt&#39;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">skiprows</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">usecols</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">41</span><span class="p">))</span>
+
+        <span class="c1"># Keep only 18 labels used</span>
+        <span class="n">used_lab</span> <span class="o">=</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">17</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">21</span><span class="p">,</span> <span class="mi">22</span><span class="p">,</span> <span class="mi">26</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">33</span><span class="p">,</span> <span class="mi">35</span><span class="p">)</span>
+
+        <span class="n">lab</span> <span class="o">=</span> <span class="p">[</span><span class="n">labels</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">used_lab</span><span class="p">]</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="p">[:,</span> <span class="n">used_lab</span><span class="p">]</span>
+
+        <span class="n">X_files_load</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dir</span> <span class="o">+</span> <span class="s1">&#39;list_attr_celeba.txt&#39;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">skiprows</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">usecols</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">X_files</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">X_files_load</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;&lt;S256&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">X_files_load</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">X_files</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dir</span> <span class="o">+</span> <span class="s1">&#39;img_align_celeba/&#39;</span> <span class="o">+</span> <span class="n">X_files_load</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+
+        <span class="n">X_files_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">X_files_val</span><span class="p">,</span> <span class="n">y_val</span><span class="p">,</span> <span class="n">X_files_test</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">X_files</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dir</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">X_files_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">X_files_val</span><span class="p">,</span> <span class="n">y_val</span><span class="p">,</span> <span class="n">X_files_test</span><span class="p">,</span> <span class="n">y_test</span><span class="p">,</span> <span class="n">lab</span></div>
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">GANs in Lasagne</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Veda Murthy.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

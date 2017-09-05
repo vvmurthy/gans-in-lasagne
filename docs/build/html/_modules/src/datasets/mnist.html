@@ -1,0 +1,332 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>src.datasets.mnist &#8212; GANs in Lasagne 0.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for src.datasets.mnist</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy.misc</span> <span class="k">as</span> <span class="nn">misc</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sklearn.preprocessing</span> <span class="k">as</span> <span class="nn">prep</span>
+<span class="c1"># &quot;Dataset&quot; type files are specific to a given class</span>
+<span class="c1"># This dataset loader is MNIST specific</span>
+<span class="c1"># It will download MNIST if needed and preprocess images to 32 x 32</span>
+<span class="c1"># Because of the small size of MNIST as compared to other datasets, we</span>
+<span class="c1"># Do not support batch loading from memory</span>
+
+
+<div class="viewcode-block" id="Mnist"><a class="viewcode-back" href="../../../classes/datasets.html#src.datasets.mnist.Mnist">[docs]</a><span class="k">class</span> <span class="nc">Mnist</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        datasets.Mnist(mnist_dir= os.getcwd + &#39;/mnist/&#39;, **kwargs)</span>
+<span class="sd">        MNIST dataset loading utilities.</span>
+<span class="sd">        Initializes MNIST dataset (images + labels), and provides the following</span>
+<span class="sd">        required functions:</span>
+<span class="sd">        * ``preprocess_im``</span>
+<span class="sd">        * ``load_files``</span>
+<span class="sd">        *``modify_y``</span>
+<span class="sd">        *``randomize_y``</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        mnist_dir : a string</span>
+<span class="sd">            The directory where the .tgz files from MNIST are contained (or should</span>
+<span class="sd">            be contained.) This directory is assumed to be an absolute path.</span>
+<span class="sd">        **kwargs</span>
+<span class="sd">            Any additional keywords that override a default attribute (below).</span>
+<span class="sd">        Functions</span>
+<span class="sd">        ---------</span>
+<span class="sd">        load_files : Function</span>
+<span class="sd">            Preprocess preloaded images into nc x li x li format and [-1, 1] range.</span>
+<span class="sd">        modify_y : Function</span>
+<span class="sd">            Generated ``lab_ln + 1`` number of permutations of a given label vector.</span>
+<span class="sd">            Allows set of images with same z vector but different y vectors to be</span>
+<span class="sd">            created</span>
+<span class="sd">        randomize_y : Function</span>
+<span class="sd">            Returns a random y vector.</span>
+<span class="sd">        Attributes</span>
+<span class="sd">        ----------</span>
+<span class="sd">        nc : int</span>
+<span class="sd">            The number of channels images in MNIST have. This is locked at 1.</span>
+<span class="sd">        lab_ln : int</span>
+<span class="sd">            The number of labels in MNIST. this is locked at 10.</span>
+<span class="sd">        li : int</span>
+<span class="sd">            The length of an input image. By default, this is 32 pix x 32 pix.</span>
+<span class="sd">            Images in MNIST are 28 x 28 by default, so we pad each image with</span>
+<span class="sd">            black pixels around the edges. if one chooses an li &gt; 32, the image</span>
+<span class="sd">            will be bilinear upscaled to the correct image size.</span>
+<span class="sd">        images_in_mem : int</span>
+<span class="sd">            The amount of images to read into memory from the the hard drive. MNIST</span>
+<span class="sd">            does not support partial reading of the dataset into memory because</span>
+<span class="sd">            of its limited size, so this parameter is typically locked at the size</span>
+<span class="sd">            of the dataset (50000).</span>
+<span class="sd">        X_files_train : 4D :class:`NdArray`</span>
+<span class="sd">            Contains 50,000 training images from MNIST read into memory.</span>
+<span class="sd">        y_train : 2D :class:`NdArray`</span>
+<span class="sd">            Contains labels for MNIST. Labels have been binarized upon loading.</span>
+<span class="sd">        X_files_val : 4D :class:`NdArray`</span>
+<span class="sd">            Contains the last 10,000 training images from MNIST as validation images.</span>
+<span class="sd">        y_val : 2D :class:`NdArray`</span>
+<span class="sd">            Contains binarized labels for each validation image.</span>
+<span class="sd">         X_files_test : 4D :class:`NdArray`</span>
+<span class="sd">            Contains the 10,000 validation images.</span>
+<span class="sd">        y_test : 2D :class:`NdArray`</span>
+<span class="sd">            Contains binarized labels for each test image.</span>
+<span class="sd">        labels : :class:`List` Object</span>
+<span class="sd">            Label names for MNIST. Contains, ``[&#39;0&#39;, &#39;1&#39;, ... &#39;9&#39;]``</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mnist_dir</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span> <span class="o">+</span> <span class="s1">&#39;/mnist/&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dir</span> <span class="o">=</span> <span class="n">mnist_dir</span>
+
+        <span class="c1"># sets unchangeable params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nc</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lab_ln</span> <span class="o">=</span> <span class="mi">10</span>
+
+        <span class="c1"># sets changeable params</span>
+        <span class="k">if</span> <span class="s1">&#39;li&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">li</span> <span class="o">=</span> <span class="mi">32</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">li</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;li&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="s1">&#39;images_in_mem&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">images_in_mem</span> <span class="o">=</span> <span class="mi">50000</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">images_in_mem</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;images_in_mem&#39;</span><span class="p">]</span>
+
+        <span class="c1"># checks changeable params + formal args</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">li</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Length of an image must be &gt; 1&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">li</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Length of Image must be integer&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dir</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+                <span class="s2">&quot;Directory </span><span class="si">%s</span><span class="s2"> Not Found&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">dir</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Initialize images in dataset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">X_files_train</span><span class="p">,</span> \
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_train</span><span class="p">,</span> \
+        <span class="bp">self</span><span class="o">.</span><span class="n">X_files_val</span><span class="p">,</span> \
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_val</span><span class="p">,</span> \
+        <span class="bp">self</span><span class="o">.</span><span class="n">X_files_test</span><span class="p">,</span> \
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_test</span><span class="p">,</span> \
+        <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_dataset</span><span class="p">()</span>
+
+    <span class="c1"># We scale MNIST images to li x li by adding two rows of -1 to all 4 sides</span>
+    <span class="k">def</span> <span class="nf">preprocess_im</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">im_</span><span class="p">):</span>
+
+        <span class="c1"># resize to 32 x 32</span>
+        <span class="n">im</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">32</span><span class="p">,</span><span class="mi">32</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">im</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">30</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span><span class="mi">30</span><span class="p">]</span> <span class="o">=</span> <span class="n">im_</span>
+
+        <span class="c1"># resize to li x li</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">li</span> <span class="o">&gt;</span> <span class="mi">32</span><span class="p">:</span>
+            <span class="n">im</span> <span class="o">=</span> <span class="n">misc</span><span class="o">.</span><span class="n">imresize</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">li</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">li</span><span class="p">),</span> <span class="n">interp</span><span class="o">=</span><span class="s1">&#39;bilinear&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Scale to range [-1, 1] from [0, 255]</span>
+        <span class="n">im</span> <span class="o">=</span> <span class="p">(</span><span class="n">im</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="mi">255</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="mf">0.5</span><span class="p">))</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># expand dimensions to 1 x li x li</span>
+        <span class="n">im</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">im</span>
+
+    <span class="c1"># We need this function to ensure that MNIST has a dataset loader</span>
+    <span class="c1"># Instead of reading + preprocessing the files, this function simply processes the</span>
+    <span class="c1"># preloaded images</span>
+    <span class="k">def</span> <span class="nf">load_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X_files</span><span class="p">,</span> <span class="n">num_samples</span><span class="p">):</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_samples</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">li</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">li</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">im</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_samples</span><span class="p">):</span>
+            <span class="n">X</span><span class="p">[</span><span class="n">im</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocess_im</span><span class="p">(</span><span class="n">X_files</span><span class="p">[</span><span class="n">im</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">X</span>
+
+    <span class="c1"># Input is a vector y, returns matrix of y variations</span>
+    <span class="c1"># Y is assumed to be mutually exclusive here</span>
+    <span class="k">def</span> <span class="nf">modify_y</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">binarize</span><span class="p">):</span>
+
+        <span class="c1"># Binarize y in a mutually exclusive manner</span>
+        <span class="k">def</span> <span class="nf">binarize_y</span><span class="p">(</span><span class="n">y</span><span class="p">):</span>
+            <span class="n">top_preds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+            <span class="n">y</span><span class="p">[:]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="n">y</span><span class="p">[</span><span class="n">top_preds</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">return</span> <span class="n">y</span>
+
+        <span class="c1"># Binarize y</span>
+        <span class="k">if</span> <span class="n">binarize</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">binarize_y</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
+        <span class="n">y_vars</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="n">y_vars</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">y</span>
+
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+            <span class="n">temp</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="n">temp</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">y_vars</span><span class="p">[</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">temp</span>
+
+        <span class="k">return</span> <span class="n">y_vars</span>
+
+    <span class="c1"># Generates fake y vectors for a given minibatch</span>
+    <span class="k">def</span> <span class="nf">randomize_y</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
+        <span class="n">random_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">random_y</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">][</span><span class="n">indices</span><span class="p">[</span><span class="n">index</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">random_y</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="c1"># This downloads MNIST if not already and loads raw files</span>
+    <span class="k">def</span> <span class="nf">init_dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">urllib</span> <span class="k">import</span> <span class="n">urlretrieve</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">urllib.request</span> <span class="k">import</span> <span class="n">urlretrieve</span>
+
+        <span class="k">def</span> <span class="nf">download</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">mnist_dir</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s1">&#39;http://yann.lecun.com/exdb/mnist/&#39;</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Downloading </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">filename</span><span class="p">)</span>
+            <span class="n">urlretrieve</span><span class="p">(</span><span class="n">source</span> <span class="o">+</span> <span class="n">filename</span><span class="p">,</span> <span class="n">mnist_dir</span> <span class="o">+</span> <span class="n">filename</span><span class="p">)</span>
+
+        <span class="kn">import</span> <span class="nn">gzip</span>
+
+        <span class="k">def</span> <span class="nf">load_mnist_images</span><span class="p">(</span><span class="n">mnist_dir</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mnist_dir</span> <span class="o">+</span> <span class="n">filename</span><span class="p">):</span>
+                <span class="n">download</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">mnist_dir</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">gzip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">mnist_dir</span> <span class="o">+</span> <span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+
+            <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">data</span>
+
+        <span class="k">def</span> <span class="nf">load_mnist_labels</span><span class="p">(</span><span class="n">mnist_dir</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mnist_dir</span> <span class="o">+</span> <span class="n">filename</span><span class="p">):</span>
+                <span class="n">download</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">mnist_dir</span><span class="p">)</span>
+
+            <span class="k">with</span> <span class="n">gzip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">mnist_dir</span> <span class="o">+</span> <span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="n">X_train</span> <span class="o">=</span> <span class="n">load_mnist_images</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dir</span><span class="p">,</span> <span class="s1">&#39;train-images-idx3-ubyte.gz&#39;</span><span class="p">)</span>
+        <span class="n">y_train</span> <span class="o">=</span> <span class="n">load_mnist_labels</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dir</span><span class="p">,</span> <span class="s1">&#39;train-labels-idx1-ubyte.gz&#39;</span><span class="p">)</span>
+        <span class="n">X_test</span> <span class="o">=</span> <span class="n">load_mnist_images</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dir</span><span class="p">,</span> <span class="s1">&#39;t10k-images-idx3-ubyte.gz&#39;</span><span class="p">)</span>
+        <span class="n">y_test</span> <span class="o">=</span> <span class="n">load_mnist_labels</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dir</span><span class="p">,</span> <span class="s1">&#39;t10k-labels-idx1-ubyte.gz&#39;</span><span class="p">)</span>
+
+        <span class="c1"># We also return the labels of the dataset</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;0&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="s1">&#39;2&#39;</span><span class="p">,</span> <span class="s1">&#39;3&#39;</span><span class="p">,</span> <span class="s1">&#39;4&#39;</span><span class="p">,</span> <span class="s1">&#39;5&#39;</span><span class="p">,</span> <span class="s1">&#39;6&#39;</span><span class="p">,</span> <span class="s1">&#39;7&#39;</span><span class="p">,</span> <span class="s1">&#39;8&#39;</span><span class="p">,</span> <span class="s1">&#39;9&#39;</span><span class="p">]</span>
+        <span class="n">int_lab</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="c1"># We store mnist labels where -1 is negative, 1 is positive</span>
+        <span class="c1"># To match range of tanh</span>
+        <span class="n">y_train</span> <span class="o">=</span> <span class="n">prep</span><span class="o">.</span><span class="n">label_binarize</span><span class="p">(</span><span class="n">y_train</span><span class="p">,</span> <span class="n">int_lab</span><span class="p">)</span>
+        <span class="n">y_train</span><span class="p">[</span><span class="n">y_train</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">y_test</span> <span class="o">=</span> <span class="n">prep</span><span class="o">.</span><span class="n">label_binarize</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">int_lab</span><span class="p">)</span>
+        <span class="n">y_test</span><span class="p">[</span><span class="n">y_test</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="c1"># We reserve the last 10000 training examples for validation.</span>
+        <span class="n">X_train</span><span class="p">,</span> <span class="n">X_val</span> <span class="o">=</span> <span class="n">X_train</span><span class="p">[:</span><span class="o">-</span><span class="mi">10000</span><span class="p">],</span> <span class="n">X_train</span><span class="p">[</span><span class="o">-</span><span class="mi">10000</span><span class="p">:]</span>
+        <span class="n">y_train</span><span class="p">,</span> <span class="n">y_val</span> <span class="o">=</span> <span class="n">y_train</span><span class="p">[:</span><span class="o">-</span><span class="mi">10000</span><span class="p">],</span> <span class="n">y_train</span><span class="p">[</span><span class="o">-</span><span class="mi">10000</span><span class="p">:]</span>
+
+        <span class="k">return</span> <span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">X_val</span><span class="p">,</span> <span class="n">y_val</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">y_test</span><span class="p">,</span> <span class="n">labels</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">GANs in Lasagne</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Veda Murthy.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

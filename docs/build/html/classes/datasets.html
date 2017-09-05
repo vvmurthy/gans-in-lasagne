@@ -1,0 +1,256 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>datasets &#8212; GANs in Lasagne 0.0 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="datasets">
+<h1><code class="xref py py-mod docutils literal"><span class="pre">datasets</span></code><a class="headerlink" href="#datasets" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-src.datasets.mnist">
+<span id="description-of-attributes-inputs"></span><h2>Description of Attributes + Inputs<a class="headerlink" href="#module-src.datasets.mnist" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="src.datasets.mnist.Mnist">
+<em class="property">class </em><code class="descclassname">src.datasets.mnist.</code><code class="descname">Mnist</code><span class="sig-paren">(</span><em>mnist_dir= os.getcwd + '/mnist/'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/datasets/mnist.html#Mnist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.datasets.mnist.Mnist" title="Permalink to this definition">¶</a></dt>
+<dd><p>MNIST dataset loading utilities.
+Initializes MNIST dataset (images + labels), and provides the following
+required functions:
+* <code class="docutils literal"><span class="pre">preprocess_im</span></code>
+* <code class="docutils literal"><span class="pre">load_files</span></code>
+<a href="#id1"><span class="problematic" id="id2">*</span></a><code class="docutils literal"><span class="pre">modify_y</span></code>
+<a href="#id3"><span class="problematic" id="id4">*</span></a><code class="docutils literal"><span class="pre">randomize_y</span></code></p>
+<dl class="docutils">
+<dt>mnist_dir <span class="classifier-delimiter">:</span> <span class="classifier">a string</span></dt>
+<dd>The directory where the .tgz files from MNIST are contained (or should
+be contained.) This directory is assumed to be an absolute path.</dd>
+<dt><a href="#id5"><span class="problematic" id="id6">**</span></a>kwargs</dt>
+<dd>Any additional keywords that override a default attribute (below).</dd>
+</dl>
+<dl class="docutils">
+<dt>load_files <span class="classifier-delimiter">:</span> <span class="classifier">Function</span></dt>
+<dd>Preprocess preloaded images into nc x li x li format and [-1, 1] range.</dd>
+<dt>modify_y <span class="classifier-delimiter">:</span> <span class="classifier">Function</span></dt>
+<dd>Generated <code class="docutils literal"><span class="pre">lab_ln</span> <span class="pre">+</span> <span class="pre">1</span></code> number of permutations of a given label vector.
+Allows set of images with same z vector but different y vectors to be
+created</dd>
+<dt>randomize_y <span class="classifier-delimiter">:</span> <span class="classifier">Function</span></dt>
+<dd>Returns a random y vector.</dd>
+</dl>
+<dl class="docutils">
+<dt>nc <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd>The number of channels images in MNIST have. This is locked at 1.</dd>
+<dt>lab_ln <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd>The number of labels in MNIST. this is locked at 10.</dd>
+<dt>li <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd>The length of an input image. By default, this is 32 pix x 32 pix.
+Images in MNIST are 28 x 28 by default, so we pad each image with
+black pixels around the edges. if one chooses an li &gt; 32, the image
+will be bilinear upscaled to the correct image size.</dd>
+<dt>images_in_mem <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd>The amount of images to read into memory from the the hard drive. MNIST
+does not support partial reading of the dataset into memory because
+of its limited size, so this parameter is typically locked at the size
+of the dataset (50000).</dd>
+<dt>X_files_train <span class="classifier-delimiter">:</span> <span class="classifier">4D <code class="xref py py-class docutils literal"><span class="pre">NdArray</span></code></span></dt>
+<dd>Contains 50,000 training images from MNIST read into memory.</dd>
+<dt>y_train <span class="classifier-delimiter">:</span> <span class="classifier">2D <code class="xref py py-class docutils literal"><span class="pre">NdArray</span></code></span></dt>
+<dd>Contains labels for MNIST. Labels have been binarized upon loading.</dd>
+<dt>X_files_val <span class="classifier-delimiter">:</span> <span class="classifier">4D <code class="xref py py-class docutils literal"><span class="pre">NdArray</span></code></span></dt>
+<dd>Contains the last 10,000 training images from MNIST as validation images.</dd>
+<dt>y_val <span class="classifier-delimiter">:</span> <span class="classifier">2D <code class="xref py py-class docutils literal"><span class="pre">NdArray</span></code></span></dt>
+<dd><blockquote class="first">
+<div>Contains binarized labels for each validation image.</div></blockquote>
+<dl class="last docutils">
+<dt>X_files_test <span class="classifier-delimiter">:</span> <span class="classifier">4D <code class="xref py py-class docutils literal"><span class="pre">NdArray</span></code></span></dt>
+<dd>Contains the 10,000 validation images.</dd>
+</dl>
+</dd>
+<dt>y_test <span class="classifier-delimiter">:</span> <span class="classifier">2D <code class="xref py py-class docutils literal"><span class="pre">NdArray</span></code></span></dt>
+<dd>Contains binarized labels for each test image.</dd>
+<dt>labels <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal"><span class="pre">List</span></code> Object</span></dt>
+<dd>Label names for MNIST. Contains, <code class="docutils literal"><span class="pre">['0',</span> <span class="pre">'1',</span> <span class="pre">...</span> <span class="pre">'9']</span></code></dd>
+</dl>
+</dd></dl>
+
+<span class="target" id="module-src.datasets.celeba"></span><dl class="class">
+<dt id="src.datasets.celeba.CelebA">
+<em class="property">class </em><code class="descclassname">src.datasets.celeba.</code><code class="descname">CelebA</code><span class="sig-paren">(</span><em>celeba_dir= os.getcwd + '/celeba/'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/datasets/celeba.html#CelebA"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.datasets.celeba.CelebA" title="Permalink to this definition">¶</a></dt>
+<dd><p>CelebA dataset loading utilities.
+Initializes CelebA dataset (images + 18 labels from [2]),
+and provides the following required functions:
+* <code class="docutils literal"><span class="pre">preprocess_im</span></code>
+* <code class="docutils literal"><span class="pre">load_files</span></code>
+<a href="#id7"><span class="problematic" id="id8">*</span></a><code class="docutils literal"><span class="pre">modify_y</span></code>
+<a href="#id9"><span class="problematic" id="id10">*</span></a><code class="docutils literal"><span class="pre">randomize_y</span></code></p>
+<dl class="docutils">
+<dt>celeba_dir <span class="classifier-delimiter">:</span> <span class="classifier">a string</span></dt>
+<dd><p class="first">The directory where the CelebA images are stored. <code class="docutils literal"><span class="pre">celeba_dir</span></code> is assumed
+to have the following structure:
++ <code class="docutils literal"><span class="pre">celeba_dir</span></code></p>
+<blockquote>
+<div><ul class="simple">
+<li><code class="docutils literal"><span class="pre">list_attr_celeba.txt</span></code></li>
+</ul>
+<p>+``img_align_celeba``
++ <code class="docutils literal"><span class="pre">list_eval_partition.txt</span></code></p>
+</div></blockquote>
+<p class="last">This string is assumed to be an absolute path.</p>
+</dd>
+<dt><a href="#id11"><span class="problematic" id="id12">**</span></a>kwargs</dt>
+<dd>Any additional keywords that override a default attribute (below).</dd>
+</dl>
+<dl class="docutils">
+<dt>load_files <span class="classifier-delimiter">:</span> <span class="classifier">Function</span></dt>
+<dd>Load images to memory and preprocess images into nc x li x li format and [-1, 1] range.</dd>
+<dt>modify_y <span class="classifier-delimiter">:</span> <span class="classifier">Function</span></dt>
+<dd>Generated <code class="docutils literal"><span class="pre">lab_ln</span> <span class="pre">+</span> <span class="pre">1</span></code> number of permutations of a given label vector.
+Allows set of images with same z vector but different y vectors to be
+created. Follows constraints of labels in dataset (only 1 hair color, only 1 hair texture)</dd>
+<dt>randomize_y <span class="classifier-delimiter">:</span> <span class="classifier">Function</span></dt>
+<dd>Returns a random y vector. Generates permutations of same y vector from <cite>modify_y</cite> then
+selects a random vector to return.</dd>
+</dl>
+<dl class="docutils">
+<dt>nc <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd>The number of channels images in CelebA have. This is locked at 3.</dd>
+<dt>lab_ln <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd>The number of labels in CelebA. this is locked at 18.</dd>
+<dt>li <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd>The length of an input image. By default, this is 64 pix x 64 pix.
+Images are cropped and resized down to 64 x 64.</dd>
+<dt>images_in_mem <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd>The amount of images to read into memory from the the hard drive. By
+default, this is set at 12,000.
+of the dataset (50000).</dd>
+<dt>X_files_train <span class="classifier-delimiter">:</span> <span class="classifier">2D <code class="xref py py-class docutils literal"><span class="pre">NdArray</span></code></span></dt>
+<dd>Contains absolute file paths for each image in CelebA train partition.</dd>
+<dt>y_train <span class="classifier-delimiter">:</span> <span class="classifier">2D <code class="xref py py-class docutils literal"><span class="pre">NdArray</span></code></span></dt>
+<dd>Contains binarized labels for CelebA train partition.</dd>
+<dt>X_files_val <span class="classifier-delimiter">:</span> <span class="classifier">4D <code class="xref py py-class docutils literal"><span class="pre">NdArray</span></code></span></dt>
+<dd>Contains absolute file paths for each image in CelebA validation partition.</dd>
+<dt>y_val <span class="classifier-delimiter">:</span> <span class="classifier">2D <code class="xref py py-class docutils literal"><span class="pre">NdArray</span></code></span></dt>
+<dd><blockquote class="first">
+<div>Contains binarized labels for CelebA validation partition.</div></blockquote>
+<dl class="last docutils">
+<dt>X_files_test <span class="classifier-delimiter">:</span> <span class="classifier">4D <code class="xref py py-class docutils literal"><span class="pre">NdArray</span></code></span></dt>
+<dd>Contains absolute file paths for each image in CelebA test partition.</dd>
+</dl>
+</dd>
+<dt>y_test <span class="classifier-delimiter">:</span> <span class="classifier">2D <code class="xref py py-class docutils literal"><span class="pre">NdArray</span></code></span></dt>
+<dd>Contains binarized labels for CelebA test partition.</dd>
+<dt>labels <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal"><span class="pre">List</span></code> Object</span></dt>
+<dd>Label names for MNIST. Contains descriptors such as <code class="docutils literal"><span class="pre">['bald',</span> <span class="pre">'heavy_makeup'</span> <span class="pre">...</span>
+<span class="pre">'blonde']</span></code></dd>
+</dl>
+<table class="docutils footnote" frame="void" id="id13" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[1]</td><td>Ziwei Liu, Ping Luo, Xiaogang Wang, Xiaoou Tang (2015):
+Deep Learning Face Attributes in the Wild. arXiv.
+<a class="reference external" href="http://arxiv.org/abs/1411.7766">http://arxiv.org/abs/1411.7766</a>
+<a class="reference external" href="http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html">http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="id14" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[2]</td><td>Guim Perarnau, Joost van de Weijer, Bogdan Raducanu,
+Jose M. Alvarez(2016):
+A guide to convolution arithmetic for deep learning. arXiv.
+<a class="reference external" href="https://arxiv.org/abs/1611.06355">https://arxiv.org/abs/1611.06355</a></td></tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">GANs in Lasagne</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Veda Murthy.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="../_sources/classes/datasets.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
