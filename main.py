@@ -2,12 +2,12 @@ import sys
 from config import config
 
 
-def run_function(mode='test'):
-    configuration = config()
+def run_function(mode='train'):
+    model = config()
     if mode == 'train':
-        configuration['train_function'](configuration)
+        model.train()
     elif mode == 'test':
-        configuration['test_function'](configuration)
+        model.test()
 
 kwargs = {}
 if len(sys.argv) > 1:
