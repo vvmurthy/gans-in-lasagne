@@ -20,8 +20,8 @@ class BEGAN:
    BEGAN initialization and training class.
    Trains BEGAN model from [1].
 
-   Inputs
-   ------
+   Parameters
+   ----------
        dataset : :class:`Dataset` Object
            Which dataset class to use. Provides dataset-specific
            hyperparameters + functions.
@@ -115,259 +115,259 @@ class BEGAN:
             os.mkdir(self.base + 'images/')
             os.mkdir(self.base + 'stats/')
 
-    def build_train_fns(self):
+    def build_generator(self, li, num_filters, num_hidden, offset):
 
-        def build_generator(li, num_filters, num_hidden, offset):
+        z_var = T.fmatrix('z_var')
+        generator = {}
+        details = [['Layer Name', 'Dims in', 'shape of layer', 'Dims out']]
 
-            z_var = T.fmatrix('z_var')
-            generator = {}
-            details = [['Layer Name', 'Dims in', 'shape of layer', 'Dims out']]
+        name = 'gen_z_var'
+        input_shape = (None, num_hidden)
+        generator[name] = lasagne.layers.InputLayer(shape=input_shape, input_var=z_var)
+        output_dims = input_shape
 
-            name = 'gen_z_var'
-            input_shape = (None, num_hidden)
-            generator[name] = lasagne.layers.InputLayer(shape=input_shape, input_var=z_var)
-            output_dims = input_shape
+        prev_name = name
+        name = 'fc_encode'
+        num_units = num_hidden * num_filters
+        generator[name] = lasagne.layers.DenseLayer(generator[prev_name], num_units, nonlinearity=None)
+        prev_output_dims = output_dims
+        output_dims = lasagne.layers.get_output_shape(generator[name])
+        details.append([name, str(prev_output_dims), str((product(prev_output_dims[1:]), num_units)),
+                        str(output_dims)])
 
-            prev_name = name
-            name = 'fc_encode'
-            num_units = num_hidden * num_filters
-            generator[name] = lasagne.layers.DenseLayer(generator[prev_name], num_units, nonlinearity=None)
-            prev_output_dims = output_dims
-            output_dims = lasagne.layers.get_output_shape(generator[name])
-            details.append([name, str(prev_output_dims), str((product(prev_output_dims[1:]), num_units)),
-                            str(output_dims)])
+        # Reshape to batchsize x num_filters x 8 x 8
+        prev_name = name
+        name = 'gen_reshape'
+        new_size = int(sqrt(num_hidden))
+        generator[name] = lasagne.layers.ReshapeLayer(generator[prev_name], ([0], num_filters, new_size, new_size))
+        prev_output_dims = output_dims
+        output_dims = lasagne.layers.get_output_shape(generator[name])
+        details.append([name, str(prev_output_dims), str('reshape to 4D'),
+                        str(output_dims)])
 
-            # Reshape to batchsize x num_filters x 8 x 8
-            prev_name = name
-            name = 'gen_reshape'
-            new_size = int(sqrt(num_hidden))
-            generator[name] = lasagne.layers.ReshapeLayer(generator[prev_name], ([0], num_filters, new_size, new_size))
-            prev_output_dims = output_dims
-            output_dims = lasagne.layers.get_output_shape(generator[name])
-            details.append([name, str(prev_output_dims), str('reshape to 4D'),
-                            str(output_dims)])
+        # two convolutions + upscale in each repeat
+        filter_size = 3
+        scale_factor = 2
 
-            # two convolutions + upscale in each repeat
-            filter_size = 3
-            scale_factor = 2
+        # calculates repeats - we assume li of 2^x where x is a positive integer - (e.g. 64, 128, 32, etc)
+        repeat_num = int(np.log2(np.array(li)) - np.log2(new_size))
 
-            # calculates repeats - we assume li of 2^x where x is a positive integer - (e.g. 64, 128, 32, etc)
-            repeat_num = int(np.log2(np.array(li)) - np.log2(new_size))
+        for n in range(0, repeat_num + 1):
 
-            for n in range(0, repeat_num + 1):
-
-                if n >= offset:
-                    filters = num_filters * (n + 1 - offset)
-                else:
-                    filters = num_filters
-
-                prev_name = name
-                name = 'gen_conv' + str(n)
-                prev_num_filters = lasagne.layers.get_output_shape(generator[prev_name])[1]
-                generator[name] = lasagne.layers.Conv2DLayer(generator[prev_name], filters,
-                                                             filter_size, stride=1, pad='same',
-                                                             nonlinearity=lasagne.nonlinearities.elu)
-                prev_output_dims = output_dims
-                output_dims = lasagne.layers.get_output_shape(generator[name])
-                details.append([name, str(prev_output_dims), str((filters, prev_num_filters, filter_size, filter_size)),
-                                str(output_dims)])
-
-                prev_name = name
-                name = 'gen_conv' + str(n) + '_' + str(2)
-                prev_num_filters = lasagne.layers.get_output_shape(generator[prev_name])[1]
-                generator[name] = lasagne.layers.Conv2DLayer(generator[prev_name], filters,
-                                                             filter_size, stride=1, pad='same',
-                                                             nonlinearity=lasagne.nonlinearities.elu)
-                prev_output_dims = output_dims
-                output_dims = lasagne.layers.get_output_shape(generator[name])
-                details.append([name, str(prev_output_dims), str((filters, prev_num_filters, filter_size, filter_size)),
-                                str(output_dims)])
-
-                if n < repeat_num:
-                    prev_name = name
-                    name = 'gen_' + str(n) + '_upscale'
-                    generator = nearest_neighbor(generator, name, prev_name, output_dims[2], scale_factor)
-                    output_dims = lasagne.layers.get_output_shape(generator[name])
-                    details.append([name, str(prev_output_dims), str('2x upscale'),
-                                    str(output_dims)])
-
-            prev_name = name
-            name = 'gen_out'
-            num_filters = 3
-            filter_size = 3
-            prev_num_filters = lasagne.layers.get_output_shape(generator[prev_name])[1]
-            generator[name] = lasagne.layers.Conv2DLayer(generator[prev_name], num_filters,
-                                                         filter_size, stride=1, pad='same',
-                                                         nonlinearity=lasagne.nonlinearities.tanh)
-            prev_output_dims = output_dims
-            output_dims = lasagne.layers.get_output_shape(generator[name])
-            details.append([name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
-                            str(output_dims)])
-
-            try:
-                from tabulate import tabulate
-                print tabulate(details)
-            except ImportError:
-                pass
-            print("Number of parameters " + str(lasagne.layers.count_params(generator['gen_out'])))
-
-            return generator, z_var
-
-        def build_discriminator(li, num_filters, num_hidden, offset):
-
-            input_var = T.tensor4('input_var')
-            elu = lasagne.nonlinearities.elu
-
-            discriminator = {}
-            details = [['Layer Name', 'Dims in', 'shape of layer', 'Dims out']]
-            filter_size = 3
-
-            input_shape = (None, 3, li, li)
-            name = 'input'
-            discriminator[name] = lasagne.layers.InputLayer(shape=input_shape, input_var=input_var)
-            output_dims = lasagne.layers.get_output_shape(discriminator[name])
-
-            prev_name = name
-            name = 'conv0_0'
-            prev_num_filters = lasagne.layers.get_output_shape(discriminator[prev_name])[1]
-            discriminator[name] = lasagne.layers.Conv2DLayer(discriminator[prev_name], num_filters,
-                                                             filter_size, stride=1, pad='same', nonlinearity=elu)
-            prev_output_dims = output_dims
-            output_dims = lasagne.layers.get_output_shape(discriminator[name])
-            details.append([name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
-                            str(output_dims)])
-
-            repeat_num = int(np.log2(np.array([li])) - np.log2(int(sqrt(num_hidden))))
-
-            for n in range(0, repeat_num):
-
-                if n >= offset:
-                    filters = (n - offset + 1) * num_filters
-                else:
-                    filters = num_filters
-
-                prev_name = name
-                name = 'conv' + str(n)
-                prev_num_filters = lasagne.layers.get_output_shape(discriminator[prev_name])[1]
-                discriminator[name] = lasagne.layers.Conv2DLayer(discriminator[prev_name], filters,
-                                                                 filter_size, stride=1, pad='same', nonlinearity=elu)
-                prev_output_dims = output_dims
-                output_dims = lasagne.layers.get_output_shape(discriminator[name])
-                details.append([name, str(prev_output_dims), str((filters, prev_num_filters, filter_size, filter_size)),
-                                str(output_dims)])
-
-                prev_name = name
-                name = 'conv' + str(n)
-                prev_num_filters = lasagne.layers.get_output_shape(discriminator[prev_name])[1]
-                discriminator[name] = lasagne.layers.Conv2DLayer(discriminator[prev_name], filters,
-                                                                 filter_size, stride=1, pad='same', nonlinearity=elu)
-                prev_output_dims = output_dims
-                output_dims = lasagne.layers.get_output_shape(discriminator[name])
-                details.append([name, str(prev_output_dims), str((filters, prev_num_filters, filter_size, filter_size)),
-                                str(output_dims)])
-
-                if n < 1 + repeat_num:
-                    prev_name = name
-                    name = 'conv' + str(n)
-                    prev_num_filters = lasagne.layers.get_output_shape(discriminator[prev_name])[1]
-                    discriminator[name] = lasagne.layers.Conv2DLayer(discriminator[prev_name], filters,
-                                                                     filter_size, stride=2, pad='same',
-                                                                     nonlinearity=elu)
-                    prev_output_dims = output_dims
-                    output_dims = lasagne.layers.get_output_shape(discriminator[name])
-                    details.append(
-                        [name, str(prev_output_dims), str((filters, prev_num_filters, filter_size, filter_size)),
-                         str(output_dims)])
-
-            # Fully connected layers
-
-            prev_name = name
-            name = 'fc_encode'
-            num_units = num_hidden
-            discriminator[name] = lasagne.layers.DenseLayer(discriminator[prev_name], num_units, nonlinearity=None)
-            prev_output_dims = output_dims
-            output_dims = lasagne.layers.get_output_shape(discriminator[name])
-            details.append([name, str(prev_output_dims), str((product(prev_output_dims[1:]), num_units)),
-                            str(output_dims)])
-
-            prev_name = name
-            name = 'fc_decode'
-            num_units = num_hidden * num_filters
-            discriminator[name] = lasagne.layers.DenseLayer(discriminator[prev_name], num_units, nonlinearity=None)
-            prev_output_dims = output_dims
-            output_dims = lasagne.layers.get_output_shape(discriminator[name])
-            details.append([name, str(prev_output_dims), str((product(prev_output_dims[1:]), num_units)),
-                            str(output_dims)])
-
-            prev_name = name
-            name = 'reshape'
-            new_size = int(sqrt(num_hidden))
-            discriminator[name] = lasagne.layers.ReshapeLayer(discriminator[prev_name],
-                                                              ([0], num_filters, new_size, new_size))
-            prev_output_dims = output_dims
-            output_dims = lasagne.layers.get_output_shape(discriminator[name])
-            details.append([name, str(prev_output_dims), str('reshape to 4D'),
-                            str(output_dims)])
-
-            scale_factor = 2
-
-            for n in range(0, repeat_num + 1):
-
-                if n >= offset:
-                    filters = num_filters * (n + 1 - offset)
-                else:
-                    filters = num_filters
-
-                prev_name = name
-                name = 'decode_conv' + str(n)
-                prev_output_dims = output_dims
-                prev_num_filters = prev_output_dims[1]
-                discriminator[name] = lasagne.layers.Conv2DLayer(discriminator[prev_name], filters,
-                                                                 filter_size, stride=1, pad='same', nonlinearity=elu)
-                output_dims = lasagne.layers.get_output_shape(discriminator[name])
-                details.append([name, str(prev_output_dims), str((filters, prev_num_filters, filter_size, filter_size)),
-                                str(output_dims)])
-
-                prev_name = name
-                name = 'decode_conv' + str(n) + '_2'
-                prev_num_filters = lasagne.layers.get_output_shape(discriminator[prev_name])[1]
-                discriminator[name] = lasagne.layers.Conv2DLayer(discriminator[prev_name], filters,
-                                                                 filter_size, stride=1, pad='same', nonlinearity=elu)
-                prev_output_dims = output_dims
-                output_dims = lasagne.layers.get_output_shape(discriminator[name])
-                details.append([name, str(prev_output_dims), str((filters, prev_num_filters, filter_size, filter_size)),
-                                str(output_dims)])
-
-                if n < repeat_num:
-                    prev_name = name
-                    name = 'upscale_' + str(n)
-                    discriminator = nearest_neighbor(discriminator, name, prev_name, output_dims[2], scale_factor)
-                    output_dims = (None, filters, scale_factor * output_dims[2], scale_factor * output_dims[2])
-                    details.append([name, str(prev_output_dims), str('2x upscale'),
-                                    str(output_dims)])
-
-                # reset number of filters
+            if n >= offset:
+                filters = num_filters * (n + 1 - offset)
+            else:
                 filters = num_filters
 
             prev_name = name
-            name = 'out'
-            num_filters = 3
-            discriminator[name] = lasagne.layers.Conv2DLayer(discriminator[prev_name], num_filters,
-                                                             filter_size, stride=1, pad='same',
-                                                             nonlinearity=lasagne.nonlinearities.tanh)
+            name = 'gen_conv' + str(n)
+            prev_num_filters = lasagne.layers.get_output_shape(generator[prev_name])[1]
+            generator[name] = lasagne.layers.Conv2DLayer(generator[prev_name], filters,
+                                                         filter_size, stride=1, pad='same',
+                                                         nonlinearity=lasagne.nonlinearities.elu)
             prev_output_dims = output_dims
-            output_dims = lasagne.layers.get_output_shape(discriminator[name])
-            details.append([name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
+            output_dims = lasagne.layers.get_output_shape(generator[name])
+            details.append([name, str(prev_output_dims), str((filters, prev_num_filters, filter_size, filter_size)),
                             str(output_dims)])
 
-            try:
-                from tabulate import tabulate
-                print(tabulate(details))
-            except ImportError:
-                pass
-            print("Number of parameters " + str(lasagne.layers.count_params(discriminator['out'])))
+            prev_name = name
+            name = 'gen_conv' + str(n) + '_' + str(2)
+            prev_num_filters = lasagne.layers.get_output_shape(generator[prev_name])[1]
+            generator[name] = lasagne.layers.Conv2DLayer(generator[prev_name], filters,
+                                                         filter_size, stride=1, pad='same',
+                                                         nonlinearity=lasagne.nonlinearities.elu)
+            prev_output_dims = output_dims
+            output_dims = lasagne.layers.get_output_shape(generator[name])
+            details.append([name, str(prev_output_dims), str((filters, prev_num_filters, filter_size, filter_size)),
+                            str(output_dims)])
 
-            return discriminator, input_var
+            if n < repeat_num:
+                prev_name = name
+                name = 'gen_' + str(n) + '_upscale'
+                generator = nearest_neighbor(generator, name, prev_name, output_dims[2], scale_factor)
+                output_dims = lasagne.layers.get_output_shape(generator[name])
+                details.append([name, str(prev_output_dims), str('2x upscale'),
+                                str(output_dims)])
+
+        prev_name = name
+        name = 'gen_out'
+        num_filters = 3
+        filter_size = 3
+        prev_num_filters = lasagne.layers.get_output_shape(generator[prev_name])[1]
+        generator[name] = lasagne.layers.Conv2DLayer(generator[prev_name], num_filters,
+                                                     filter_size, stride=1, pad='same',
+                                                     nonlinearity=lasagne.nonlinearities.tanh)
+        prev_output_dims = output_dims
+        output_dims = lasagne.layers.get_output_shape(generator[name])
+        details.append([name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
+                        str(output_dims)])
+
+        try:
+            from tabulate import tabulate
+            print tabulate(details)
+        except ImportError:
+            pass
+        print("Number of parameters " + str(lasagne.layers.count_params(generator['gen_out'])))
+
+        return generator, z_var
+
+    def build_discriminator(self, li, num_filters, num_hidden, offset):
+
+        input_var = T.tensor4('input_var')
+        elu = lasagne.nonlinearities.elu
+
+        discriminator = {}
+        details = [['Layer Name', 'Dims in', 'shape of layer', 'Dims out']]
+        filter_size = 3
+
+        input_shape = (None, 3, li, li)
+        name = 'input'
+        discriminator[name] = lasagne.layers.InputLayer(shape=input_shape, input_var=input_var)
+        output_dims = lasagne.layers.get_output_shape(discriminator[name])
+
+        prev_name = name
+        name = 'conv0_0'
+        prev_num_filters = lasagne.layers.get_output_shape(discriminator[prev_name])[1]
+        discriminator[name] = lasagne.layers.Conv2DLayer(discriminator[prev_name], num_filters,
+                                                         filter_size, stride=1, pad='same', nonlinearity=elu)
+        prev_output_dims = output_dims
+        output_dims = lasagne.layers.get_output_shape(discriminator[name])
+        details.append([name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
+                        str(output_dims)])
+
+        repeat_num = int(np.log2(np.array([li])) - np.log2(int(sqrt(num_hidden))))
+
+        for n in range(0, repeat_num):
+
+            if n >= offset:
+                filters = (n - offset + 1) * num_filters
+            else:
+                filters = num_filters
+
+            prev_name = name
+            name = 'conv' + str(n)
+            prev_num_filters = lasagne.layers.get_output_shape(discriminator[prev_name])[1]
+            discriminator[name] = lasagne.layers.Conv2DLayer(discriminator[prev_name], filters,
+                                                             filter_size, stride=1, pad='same', nonlinearity=elu)
+            prev_output_dims = output_dims
+            output_dims = lasagne.layers.get_output_shape(discriminator[name])
+            details.append([name, str(prev_output_dims), str((filters, prev_num_filters, filter_size, filter_size)),
+                            str(output_dims)])
+
+            prev_name = name
+            name = 'conv' + str(n)
+            prev_num_filters = lasagne.layers.get_output_shape(discriminator[prev_name])[1]
+            discriminator[name] = lasagne.layers.Conv2DLayer(discriminator[prev_name], filters,
+                                                             filter_size, stride=1, pad='same', nonlinearity=elu)
+            prev_output_dims = output_dims
+            output_dims = lasagne.layers.get_output_shape(discriminator[name])
+            details.append([name, str(prev_output_dims), str((filters, prev_num_filters, filter_size, filter_size)),
+                            str(output_dims)])
+
+            if n < 1 + repeat_num:
+                prev_name = name
+                name = 'conv' + str(n)
+                prev_num_filters = lasagne.layers.get_output_shape(discriminator[prev_name])[1]
+                discriminator[name] = lasagne.layers.Conv2DLayer(discriminator[prev_name], filters,
+                                                                 filter_size, stride=2, pad='same',
+                                                                 nonlinearity=elu)
+                prev_output_dims = output_dims
+                output_dims = lasagne.layers.get_output_shape(discriminator[name])
+                details.append(
+                    [name, str(prev_output_dims), str((filters, prev_num_filters, filter_size, filter_size)),
+                     str(output_dims)])
+
+        # Fully connected layers
+
+        prev_name = name
+        name = 'fc_encode'
+        num_units = num_hidden
+        discriminator[name] = lasagne.layers.DenseLayer(discriminator[prev_name], num_units, nonlinearity=None)
+        prev_output_dims = output_dims
+        output_dims = lasagne.layers.get_output_shape(discriminator[name])
+        details.append([name, str(prev_output_dims), str((product(prev_output_dims[1:]), num_units)),
+                        str(output_dims)])
+
+        prev_name = name
+        name = 'fc_decode'
+        num_units = num_hidden * num_filters
+        discriminator[name] = lasagne.layers.DenseLayer(discriminator[prev_name], num_units, nonlinearity=None)
+        prev_output_dims = output_dims
+        output_dims = lasagne.layers.get_output_shape(discriminator[name])
+        details.append([name, str(prev_output_dims), str((product(prev_output_dims[1:]), num_units)),
+                        str(output_dims)])
+
+        prev_name = name
+        name = 'reshape'
+        new_size = int(sqrt(num_hidden))
+        discriminator[name] = lasagne.layers.ReshapeLayer(discriminator[prev_name],
+                                                          ([0], num_filters, new_size, new_size))
+        prev_output_dims = output_dims
+        output_dims = lasagne.layers.get_output_shape(discriminator[name])
+        details.append([name, str(prev_output_dims), str('reshape to 4D'),
+                        str(output_dims)])
+
+        scale_factor = 2
+
+        for n in range(0, repeat_num + 1):
+
+            if n >= offset:
+                filters = num_filters * (n + 1 - offset)
+            else:
+                filters = num_filters
+
+            prev_name = name
+            name = 'decode_conv' + str(n)
+            prev_output_dims = output_dims
+            prev_num_filters = prev_output_dims[1]
+            discriminator[name] = lasagne.layers.Conv2DLayer(discriminator[prev_name], filters,
+                                                             filter_size, stride=1, pad='same', nonlinearity=elu)
+            output_dims = lasagne.layers.get_output_shape(discriminator[name])
+            details.append([name, str(prev_output_dims), str((filters, prev_num_filters, filter_size, filter_size)),
+                            str(output_dims)])
+
+            prev_name = name
+            name = 'decode_conv' + str(n) + '_2'
+            prev_num_filters = lasagne.layers.get_output_shape(discriminator[prev_name])[1]
+            discriminator[name] = lasagne.layers.Conv2DLayer(discriminator[prev_name], filters,
+                                                             filter_size, stride=1, pad='same', nonlinearity=elu)
+            prev_output_dims = output_dims
+            output_dims = lasagne.layers.get_output_shape(discriminator[name])
+            details.append([name, str(prev_output_dims), str((filters, prev_num_filters, filter_size, filter_size)),
+                            str(output_dims)])
+
+            if n < repeat_num:
+                prev_name = name
+                name = 'upscale_' + str(n)
+                discriminator = nearest_neighbor(discriminator, name, prev_name, output_dims[2], scale_factor)
+                output_dims = (None, filters, scale_factor * output_dims[2], scale_factor * output_dims[2])
+                details.append([name, str(prev_output_dims), str('2x upscale'),
+                                str(output_dims)])
+
+            # reset number of filters
+            filters = num_filters
+
+        prev_name = name
+        name = 'out'
+        num_filters = 3
+        discriminator[name] = lasagne.layers.Conv2DLayer(discriminator[prev_name], num_filters,
+                                                         filter_size, stride=1, pad='same',
+                                                         nonlinearity=lasagne.nonlinearities.tanh)
+        prev_output_dims = output_dims
+        output_dims = lasagne.layers.get_output_shape(discriminator[name])
+        details.append([name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
+                        str(output_dims)])
+
+        try:
+            from tabulate import tabulate
+            print(tabulate(details))
+        except ImportError:
+            pass
+        print("Number of parameters " + str(lasagne.layers.count_params(discriminator['out'])))
+
+        return discriminator, input_var
+
+    def build_train_fns(self):
 
         # defines variables
         print("Building model and compiling functions...")
@@ -375,8 +375,8 @@ class BEGAN:
         # Builds discriminator and generator
         k_t = T.fscalar('k_t')
         gamma = theano.compile.shared(self.gamma)
-        discriminator, input_var = build_discriminator(self.li, self.num_filters, self.num_hidden, self.offset)
-        generator, z_var = build_generator(self.li, self.num_filters, self.num_hidden, self.offset)
+        discriminator, input_var = self.build_discriminator(self.li, self.num_filters, self.num_hidden, self.offset)
+        generator, z_var = self.build_generator(self.li, self.num_filters, self.num_hidden, self.offset)
 
         # Gets output image from generator, discriminator
         # as well as reconstruction of generated image from discriminator

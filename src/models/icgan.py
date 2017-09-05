@@ -17,10 +17,10 @@ from src.utils.graphs_unconditional import *
 class IcGAN:
     """
     models.IcGAN(dataset, folder_name='icgan', **kwargs)
-    IcGan initialization and training class. Trains IcGAN model from [1].
+    IcGAN initialization and training class. Trains IcGAN model from [1].
 
-    Inputs
-    ------
+    Parameters
+    ----------
     dataset : :class:`Dataset` Object
         Which dataset class to use. Provides dataset-specific
         hyperparameters + functions.
@@ -102,234 +102,209 @@ class IcGAN:
             os.mkdir(self.base + 'images/')
             os.mkdir(self.base + 'stats/')
 
-    def build_train_fns(self):
+    def build_encoder_y(self, li, nc, lab_ln, lr):
+        y_var = T.fmatrix('y_var')
+        input_var = T.tensor4('inputs')
+        encoder = {}
+        details = [['Layer Name', 'Dims in', 'shape of layer', 'Dims out']]
 
-        def build_encoder_y(li, nc, lab_ln, lr):
-            y_var = T.fmatrix('y_var')
-            input_var = T.tensor4('inputs')
-            encoder = {}
-            details = [['Layer Name', 'Dims in', 'shape of layer', 'Dims out']]
+        input_shape = (None, nc, li, li)
+        name = 'input'
+        encoder[name] = lasagne.layers.InputLayer(shape=input_shape, input_var=input_var)
+        output_dims = input_shape
+        filter_size = 5
+        num_filters = li / 4
 
-            input_shape = (None, nc, li, li)
-            name = 'input'
-            encoder[name] = lasagne.layers.InputLayer(shape=input_shape, input_var=input_var)
-            output_dims = input_shape
-            filter_size = 5
-            num_filters = li / 4
+        repeat_num = int(np.log2(np.array(li)) - 3) + 1
 
-            repeat_num = int(np.log2(np.array(li)) - 3) + 1
-
-            for n in range(0, repeat_num):
-                num_filters = num_filters * 2
-                prev_name = name
-                name = 'conv' + str(n)
-                prev_num_filters = lasagne.layers.get_output_shape(encoder[prev_name])[1]
-                encoder[name] = lasagne.layers.batch_norm(lasagne.layers.Conv2DLayer(encoder[prev_name], num_filters,
-                                                                                     filter_size, stride=2, pad='same',
-                                                                                     nonlinearity=lasagne.nonlinearities.rectify))
-                prev_output_dims = output_dims
-                output_dims = lasagne.layers.get_output_shape(encoder[name])
-                details.append(
-                    [name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
-                     str(output_dims)])
-
+        for n in range(0, repeat_num):
+            num_filters = num_filters * 2
             prev_name = name
-            name = 'fc'
-            num_units = int(li * li / 8)
-
-            encoder[name] = lasagne.layers.DenseLayer(encoder[prev_name],
-                                                      num_units=num_units,
-                                                      nonlinearity=lasagne.nonlinearities.rectify)
-
+            name = 'conv' + str(n)
+            prev_num_filters = lasagne.layers.get_output_shape(encoder[prev_name])[1]
+            encoder[name] = lasagne.layers.batch_norm(lasagne.layers.Conv2DLayer(encoder[prev_name], num_filters,
+                                                                                 filter_size, stride=2, pad='same',
+                                                                                 nonlinearity=lasagne.nonlinearities.rectify))
             prev_output_dims = output_dims
             output_dims = lasagne.layers.get_output_shape(encoder[name])
+            details.append(
+                [name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
+                 str(output_dims)])
 
-            details.append([name, str(prev_output_dims), str((product(prev_output_dims[1:]), num_units)),
-                            str(output_dims)])
+        prev_name = name
+        name = 'fc'
+        num_units = int(li * li / 8)
 
+        encoder[name] = lasagne.layers.DenseLayer(encoder[prev_name],
+                                                  num_units=num_units,
+                                                  nonlinearity=lasagne.nonlinearities.rectify)
+
+        prev_output_dims = output_dims
+        output_dims = lasagne.layers.get_output_shape(encoder[name])
+
+        details.append([name, str(prev_output_dims), str((product(prev_output_dims[1:]), num_units)),
+                        str(output_dims)])
+
+        prev_name = name
+        name = 'out'
+        num_units = lab_ln
+
+        encoder[name] = lasagne.layers.DenseLayer(encoder[prev_name],
+                                                  num_units=num_units,
+                                                  nonlinearity=lasagne.nonlinearities.tanh)
+
+        prev_output_dims = output_dims
+        output_dims = lasagne.layers.get_output_shape(encoder[name])
+
+        details.append([name, str(prev_output_dims), str((product(prev_output_dims[1:]), num_units)),
+                        str(output_dims)])
+
+        train_out = lasagne.layers.get_output(encoder['out'])
+        val_out = lasagne.layers.get_output(encoder['out'], deterministic=True)
+
+        loss = lasagne.objectives.squared_error(train_out, y_var).mean()
+        params = lasagne.layers.get_all_params(encoder['out'], trainable=True)
+        updates = lasagne.updates.adam(loss, params, learning_rate=lr, beta1=0.5)
+        train_fn = theano.function([input_var, y_var], [loss], updates=updates)
+        val_fn = theano.function([input_var], [val_out])
+
+        try:
+            from tabulate import tabulate
+            print(tabulate(details))
+        except ImportError:
+            pass
+        return encoder, train_fn, val_fn
+
+    def build_encoder_z(self, li, nc, num_hidden, lr):
+        z_var = T.fmatrix('z_var')
+        input_var = T.tensor4('inputs')
+        encoder = {}
+        details = [['Layer Name', 'Dims in', 'shape of layer', 'Dims out']]
+
+        input_shape = (None, nc, li, li)
+        name = 'input'
+        encoder[name] = lasagne.layers.InputLayer(shape=input_shape, input_var=input_var)
+        output_dims = input_shape
+
+        filter_size = 5
+        num_filters = li / 4
+
+        repeat_num = int(np.log2(np.array(li)) - 3) + 1
+
+        for n in range(0, repeat_num):
+            num_filters = num_filters * 2
             prev_name = name
-            name = 'out'
-            num_units = lab_ln
-
-            encoder[name] = lasagne.layers.DenseLayer(encoder[prev_name],
-                                                      num_units=num_units,
-                                                      nonlinearity=lasagne.nonlinearities.tanh)
-
+            name = 'conv' + str(n)
+            prev_num_filters = lasagne.layers.get_output_shape(encoder[prev_name])[1]
+            encoder[name] = lasagne.layers.batch_norm(lasagne.layers.Conv2DLayer(encoder[prev_name], num_filters,
+                                                                                 filter_size, stride=2, pad='same',
+                                                                                 nonlinearity=lasagne.nonlinearities.rectify))
             prev_output_dims = output_dims
             output_dims = lasagne.layers.get_output_shape(encoder[name])
+            details.append(
+                [name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
+                 str(output_dims)])
 
-            details.append([name, str(prev_output_dims), str((product(prev_output_dims[1:]), num_units)),
-                            str(output_dims)])
+        prev_name = name
+        name = 'fc'
+        num_units = int(li * li)
 
-            train_out = lasagne.layers.get_output(encoder['out'])
-            val_out = lasagne.layers.get_output(encoder['out'], deterministic=True)
+        encoder[name] = lasagne.layers.DenseLayer(encoder[prev_name],
+                                                  num_units=num_units,
+                                                  nonlinearity=lasagne.nonlinearities.rectify)
 
-            loss = lasagne.objectives.squared_error(train_out, y_var).mean()
-            params = lasagne.layers.get_all_params(encoder['out'], trainable=True)
-            updates = lasagne.updates.adam(loss, params, learning_rate=lr, beta1=0.5)
-            train_fn = theano.function([input_var, y_var], [loss], updates=updates)
-            val_fn = theano.function([input_var], [val_out])
+        prev_output_dims = output_dims
+        output_dims = lasagne.layers.get_output_shape(encoder[name])
+        details.append([name, str(prev_output_dims), str((product(prev_output_dims[1:]), num_units)),
+                        str(output_dims)])
 
-            try:
-                from tabulate import tabulate
-                print(tabulate(details))
-            except ImportError:
-                pass
-            return encoder, train_fn, val_fn
+        prev_name = name
+        name = 'out'
+        num_units = num_hidden
 
-        def build_encoder_z(li, nc, num_hidden, lr):
-            z_var = T.fmatrix('z_var')
-            input_var = T.tensor4('inputs')
-            encoder = {}
-            details = [['Layer Name', 'Dims in', 'shape of layer', 'Dims out']]
+        # We restrict output to tanh domain (same as input noise)
+        encoder[name] = lasagne.layers.DenseLayer(encoder[prev_name],
+                                                  num_units=num_units,
+                                                  nonlinearity=lasagne.nonlinearities.tanh)
 
-            input_shape = (None, nc, li, li)
-            name = 'input'
-            encoder[name] = lasagne.layers.InputLayer(shape=input_shape, input_var=input_var)
-            output_dims = input_shape
+        prev_output_dims = output_dims
+        output_dims = lasagne.layers.get_output_shape(encoder[name])
+        details.append([name, str(prev_output_dims), str((product(prev_output_dims[1:]), num_units)),
+                        str(output_dims)])
 
-            filter_size = 5
-            num_filters = li / 4
+        train_out = lasagne.layers.get_output(encoder['out'])
+        val_out = lasagne.layers.get_output(encoder['out'], deterministic=True)
 
-            repeat_num = int(np.log2(np.array(li)) - 3) + 1
+        loss = lasagne.objectives.squared_error(train_out, z_var).mean()
+        params = lasagne.layers.get_all_params(encoder['out'], trainable=True)
+        updates = lasagne.updates.adam(loss, params, learning_rate=lr, beta1=0.5)
+        train_fn = theano.function([input_var, z_var], [loss], updates=updates)
+        val_fn = theano.function([input_var], [val_out])
 
-            for n in range(0, repeat_num):
-                num_filters = num_filters * 2
-                prev_name = name
-                name = 'conv' + str(n)
-                prev_num_filters = lasagne.layers.get_output_shape(encoder[prev_name])[1]
-                encoder[name] = lasagne.layers.batch_norm(lasagne.layers.Conv2DLayer(encoder[prev_name], num_filters,
-                                                                                     filter_size, stride=2, pad='same',
-                                                                                     nonlinearity=lasagne.nonlinearities.rectify))
-                prev_output_dims = output_dims
-                output_dims = lasagne.layers.get_output_shape(encoder[name])
-                details.append(
-                    [name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
-                     str(output_dims)])
+        try:
+            from tabulate import tabulate
+            print(tabulate(details))
+        except ImportError:
+            pass
+        return encoder, train_fn, val_fn
 
+    def build_generator(self, y_var, li, nc, lab_ln, num_hidden):
+
+        z_var = T.fmatrix('z_var')
+        generator = {}
+        details = [['Layer Name', 'Dims in', 'shape of layer', 'Dims out']]
+
+        # input noise
+        name = 'gen_z_var'
+        input_shape = (None, num_hidden)
+        generator[name] = lasagne.layers.InputLayer(shape=input_shape, input_var=z_var)
+
+        # Input: y vector
+        name = 'gen_y_var'
+        input_shape = (None, lab_ln, 1)
+        generator[name] = lasagne.layers.InputLayer(shape=input_shape, input_var=y_var)
+
+        # reshape y_var to 2D
+        prev_name = name
+        name = 'gen_reshape_y'
+        generator[name] = lasagne.layers.ReshapeLayer(generator[prev_name], ([0], -1))
+
+        # Concatenate y variable
+        name = 'gen_concat'
+        generator[name] = lasagne.layers.ConcatLayer([generator['gen_z_var'], generator['gen_reshape_y']])
+        output_dims = lasagne.layers.get_output_shape(generator[name])
+
+        # Reshape to batchsize x length x 1 x 1
+        prev_name = name
+        name = 'gen_reshape'
+        generator[name] = lasagne.layers.ReshapeLayer(generator[prev_name], ([0], num_hidden + lab_ln, 1, 1))
+        prev_output_dims = output_dims
+        output_dims = lasagne.layers.get_output_shape(generator[name])
+        details.append([name, str(prev_output_dims), str('reshape to 4D'),
+                        str(output_dims)])
+
+        # First convolution (uses valid, not full padding)
+        prev_name = name
+        name = 'gen_conv0_0'
+        num_filters = 2 ** int(np.log2(np.array(li)) + 3)
+        filter_size = 4
+        prev_num_filters = lasagne.layers.get_output_shape(generator[prev_name])[1]
+        generator[name] = lasagne.layers.batch_norm(lasagne.layers.Deconv2DLayer(generator[prev_name], num_filters,
+                                                                                 filter_size, stride=1,
+                                                                                 crop='valid'))
+        prev_output_dims = output_dims
+        output_dims = lasagne.layers.get_output_shape(generator[name])
+        details.append([name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
+                        str(output_dims)])
+
+        # Constructs batch norm convolutions
+        # each convolution is preceded by padding
+        # Pad with zeros on all sides (from torch implementation)
+        # We repeat 3 times for 64 pixels
+        repeat_num = int(np.log2(np.array(li)) - 3)
+        for n in range(0, repeat_num):
             prev_name = name
-            name = 'fc'
-            num_units = int(li * li)
-
-            encoder[name] = lasagne.layers.DenseLayer(encoder[prev_name],
-                                                      num_units=num_units,
-                                                      nonlinearity=lasagne.nonlinearities.rectify)
-
-            prev_output_dims = output_dims
-            output_dims = lasagne.layers.get_output_shape(encoder[name])
-            details.append([name, str(prev_output_dims), str((product(prev_output_dims[1:]), num_units)),
-                            str(output_dims)])
-
-            prev_name = name
-            name = 'out'
-            num_units = num_hidden
-
-            # We restrict output to tanh domain (same as input noise)
-            encoder[name] = lasagne.layers.DenseLayer(encoder[prev_name],
-                                                      num_units=num_units,
-                                                      nonlinearity=lasagne.nonlinearities.tanh)
-
-            prev_output_dims = output_dims
-            output_dims = lasagne.layers.get_output_shape(encoder[name])
-            details.append([name, str(prev_output_dims), str((product(prev_output_dims[1:]), num_units)),
-                            str(output_dims)])
-
-            train_out = lasagne.layers.get_output(encoder['out'])
-            val_out = lasagne.layers.get_output(encoder['out'], deterministic=True)
-
-            loss = lasagne.objectives.squared_error(train_out, z_var).mean()
-            params = lasagne.layers.get_all_params(encoder['out'], trainable=True)
-            updates = lasagne.updates.adam(loss, params, learning_rate=lr, beta1=0.5)
-            train_fn = theano.function([input_var, z_var], [loss], updates=updates)
-            val_fn = theano.function([input_var], [val_out])
-
-            try:
-                from tabulate import tabulate
-                print(tabulate(details))
-            except ImportError:
-                pass
-            return encoder, train_fn, val_fn
-
-        def build_generator(y_var, li, nc, lab_ln, num_hidden):
-
-            z_var = T.fmatrix('z_var')
-            generator = {}
-            details = [['Layer Name', 'Dims in', 'shape of layer', 'Dims out']]
-
-            # input noise
-            name = 'gen_z_var'
-            input_shape = (None, num_hidden)
-            generator[name] = lasagne.layers.InputLayer(shape=input_shape, input_var=z_var)
-
-            # Input: y vector
-            name = 'gen_y_var'
-            input_shape = (None, lab_ln, 1)
-            generator[name] = lasagne.layers.InputLayer(shape=input_shape, input_var=y_var)
-
-            # reshape y_var to 2D
-            prev_name = name
-            name = 'gen_reshape_y'
-            generator[name] = lasagne.layers.ReshapeLayer(generator[prev_name], ([0], -1))
-
-            # Concatenate y variable
-            name = 'gen_concat'
-            generator[name] = lasagne.layers.ConcatLayer([generator['gen_z_var'], generator['gen_reshape_y']])
-            output_dims = lasagne.layers.get_output_shape(generator[name])
-
-            # Reshape to batchsize x length x 1 x 1
-            prev_name = name
-            name = 'gen_reshape'
-            generator[name] = lasagne.layers.ReshapeLayer(generator[prev_name], ([0], num_hidden + lab_ln, 1, 1))
-            prev_output_dims = output_dims
-            output_dims = lasagne.layers.get_output_shape(generator[name])
-            details.append([name, str(prev_output_dims), str('reshape to 4D'),
-                            str(output_dims)])
-
-            # First convolution (uses valid, not full padding)
-            prev_name = name
-            name = 'gen_conv0_0'
-            num_filters = 2 ** int(np.log2(np.array(li)) + 3)
-            filter_size = 4
-            prev_num_filters = lasagne.layers.get_output_shape(generator[prev_name])[1]
-            generator[name] = lasagne.layers.batch_norm(lasagne.layers.Deconv2DLayer(generator[prev_name], num_filters,
-                                                                                     filter_size, stride=1,
-                                                                                     crop='valid'))
-            prev_output_dims = output_dims
-            output_dims = lasagne.layers.get_output_shape(generator[name])
-            details.append([name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
-                            str(output_dims)])
-
-            # Constructs batch norm convolutions
-            # each convolution is preceded by padding
-            # Pad with zeros on all sides (from torch implementation)
-            # We repeat 3 times for 64 pixels
-            repeat_num = int(np.log2(np.array(li)) - 3)
-            for n in range(0, repeat_num):
-                prev_name = name
-                name = 'gen_pad' + str(n)
-                pad_amt = 1
-                generator[name] = lasagne.layers.PadLayer(generator[prev_name], pad_amt)
-                prev_output_dims = output_dims
-                output_dims = lasagne.layers.get_output_shape(generator[name])
-                details.append([name, str(prev_output_dims), str(pad_amt),
-                                str(output_dims)])
-
-                prev_name = name
-                name = 'gen_conv' + str(n)
-                num_filters = num_filters / 2
-                filter_size = 4
-                prev_num_filters = lasagne.layers.get_output_shape(generator[prev_name])[1]
-                generator[name] = lasagne.layers.batch_norm(
-                    lasagne.layers.Deconv2DLayer(generator[prev_name], num_filters,
-                                                 filter_size, stride=2, crop='full'))
-                prev_output_dims = output_dims
-                output_dims = lasagne.layers.get_output_shape(generator[name])
-                details.append(
-                    [name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
-                     str(output_dims)])
-
-            prev_name = name
-            name = 'gen_pad_out'
+            name = 'gen_pad' + str(n)
             pad_amt = 1
             generator[name] = lasagne.layers.PadLayer(generator[prev_name], pad_amt)
             prev_output_dims = output_dims
@@ -338,46 +313,100 @@ class IcGAN:
                             str(output_dims)])
 
             prev_name = name
-            name = 'gen_out'
-            num_filters = nc
+            name = 'gen_conv' + str(n)
+            num_filters = num_filters / 2
             filter_size = 4
             prev_num_filters = lasagne.layers.get_output_shape(generator[prev_name])[1]
-            generator[name] = lasagne.layers.Deconv2DLayer(generator[prev_name], num_filters,
-                                                           filter_size, stride=2, crop='full',
-                                                           nonlinearity=lasagne.nonlinearities.tanh)
+            generator[name] = lasagne.layers.batch_norm(
+                lasagne.layers.Deconv2DLayer(generator[prev_name], num_filters,
+                                             filter_size, stride=2, crop='full'))
             prev_output_dims = output_dims
             output_dims = lasagne.layers.get_output_shape(generator[name])
-            details.append([name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
-                            str(output_dims)])
+            details.append(
+                [name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
+                 str(output_dims)])
 
-            try:
-                from tabulate import tabulate
-                print tabulate(details)
-            except ImportError:
-                pass
+        prev_name = name
+        name = 'gen_pad_out'
+        pad_amt = 1
+        generator[name] = lasagne.layers.PadLayer(generator[prev_name], pad_amt)
+        prev_output_dims = output_dims
+        output_dims = lasagne.layers.get_output_shape(generator[name])
+        details.append([name, str(prev_output_dims), str(pad_amt),
+                        str(output_dims)])
 
-            return generator, z_var
+        prev_name = name
+        name = 'gen_out'
+        num_filters = nc
+        filter_size = 4
+        prev_num_filters = lasagne.layers.get_output_shape(generator[prev_name])[1]
+        generator[name] = lasagne.layers.Deconv2DLayer(generator[prev_name], num_filters,
+                                                       filter_size, stride=2, crop='full',
+                                                       nonlinearity=lasagne.nonlinearities.tanh)
+        prev_output_dims = output_dims
+        output_dims = lasagne.layers.get_output_shape(generator[name])
+        details.append([name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
+                        str(output_dims)])
 
-        def build_discriminator(y_var, li, nc, lab_ln):
+        try:
+            from tabulate import tabulate
+            print tabulate(details)
+        except ImportError:
+            pass
 
-            input_var = T.tensor4('input_var')
-            lrelu = lasagne.nonlinearities.LeakyRectify(0.2)
+        return generator, z_var
 
-            discriminator = {}
-            details = [['Layer Name', 'Dims in', 'shape of layer', 'Dims out']]
+    def build_discriminator(self, y_var, li, nc, lab_ln):
 
-            input_shape = (None, lab_ln, li / 2, li / 2)
-            name = 'input_y'
-            discriminator[name] = lasagne.layers.InputLayer(shape=input_shape, input_var=y_var)
-            output_dims = lasagne.layers.get_output_shape(discriminator[name])
+        input_var = T.tensor4('input_var')
+        lrelu = lasagne.nonlinearities.LeakyRectify(0.2)
 
-            input_shape = (None, nc, li, li)
-            name = 'input'
-            discriminator[name] = lasagne.layers.InputLayer(shape=input_shape, input_var=input_var)
-            output_dims = lasagne.layers.get_output_shape(discriminator[name])
+        discriminator = {}
+        details = [['Layer Name', 'Dims in', 'shape of layer', 'Dims out']]
 
+        input_shape = (None, lab_ln, li / 2, li / 2)
+        name = 'input_y'
+        discriminator[name] = lasagne.layers.InputLayer(shape=input_shape, input_var=y_var)
+        output_dims = lasagne.layers.get_output_shape(discriminator[name])
+
+        input_shape = (None, nc, li, li)
+        name = 'input'
+        discriminator[name] = lasagne.layers.InputLayer(shape=input_shape, input_var=input_var)
+        output_dims = lasagne.layers.get_output_shape(discriminator[name])
+
+        prev_name = name
+        name = 'pad1'
+        pad_amt = 1
+        discriminator[name] = lasagne.layers.PadLayer(discriminator[prev_name], pad_amt)
+        prev_output_dims = output_dims
+        output_dims = lasagne.layers.get_output_shape(discriminator[name])
+        details.append([name, str(prev_output_dims), str(pad_amt),
+                        str(output_dims)])
+
+        prev_name = name
+        name = 'conv_init'
+        num_filters = li
+        filter_size = 4
+        prev_num_filters = lasagne.layers.get_output_shape(discriminator[prev_name])[1]
+        discriminator[name] = lasagne.layers.Conv2DLayer(discriminator[prev_name], num_filters,
+                                                         filter_size, stride=2, pad='valid', nonlinearity=lrelu)
+        prev_output_dims = output_dims
+        output_dims = lasagne.layers.get_output_shape(discriminator[name])
+        details.append([name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
+                        str(output_dims)])
+
+        prev_name = name
+        name = 'concat'
+        discriminator[name] = lasagne.layers.ConcatLayer([discriminator[prev_name], discriminator['input_y']])
+        prev_output_dims = output_dims
+        output_dims = lasagne.layers.get_output_shape(discriminator[name])
+        details.append([name, str(prev_output_dims), str('concat'),
+                        str(output_dims)])
+
+        repeat_num = int(np.log2(np.array(li)) - 3)
+        for n in range(0, repeat_num):
             prev_name = name
-            name = 'pad1'
+            name = 'pad' + str(n)
             pad_amt = 1
             discriminator[name] = lasagne.layers.PadLayer(discriminator[prev_name], pad_amt)
             prev_output_dims = output_dims
@@ -386,77 +415,48 @@ class IcGAN:
                             str(output_dims)])
 
             prev_name = name
-            name = 'conv_init'
-            num_filters = li
+            name = 'conv' + str(n)
+            num_filters = num_filters * 2
             filter_size = 4
             prev_num_filters = lasagne.layers.get_output_shape(discriminator[prev_name])[1]
-            discriminator[name] = lasagne.layers.Conv2DLayer(discriminator[prev_name], num_filters,
-                                                             filter_size, stride=2, pad='valid', nonlinearity=lrelu)
+            discriminator = batch_conv(discriminator, prev_name, name, num_filters, filter_size,
+                                       2, 'valid', False, lrelu)
             prev_output_dims = output_dims
             output_dims = lasagne.layers.get_output_shape(discriminator[name])
-            details.append([name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
-                            str(output_dims)])
+            details.append(
+                [name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
+                 str(output_dims)])
 
-            prev_name = name
-            name = 'concat'
-            discriminator[name] = lasagne.layers.ConcatLayer([discriminator[prev_name], discriminator['input_y']])
-            prev_output_dims = output_dims
-            output_dims = lasagne.layers.get_output_shape(discriminator[name])
-            details.append([name, str(prev_output_dims), str('concat'),
-                            str(output_dims)])
+        prev_name = name
+        name = 'conv_final'
+        filter_size = 4
+        num_filters = 1
+        prev_num_filters = lasagne.layers.get_output_shape(discriminator[prev_name])[1]
+        discriminator[name] = lasagne.layers.Conv2DLayer(discriminator[prev_name], num_filters,
+                                                         filter_size, stride=1, pad='valid',
+                                                         nonlinearity=lasagne.nonlinearities.sigmoid)
+        prev_output_dims = output_dims
+        output_dims = lasagne.layers.get_output_shape(discriminator[name])
+        details.append([name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
+                        str(output_dims)])
 
-            repeat_num = int(np.log2(np.array(li)) - 3)
-            for n in range(0, repeat_num):
-                prev_name = name
-                name = 'pad' + str(n)
-                pad_amt = 1
-                discriminator[name] = lasagne.layers.PadLayer(discriminator[prev_name], pad_amt)
-                prev_output_dims = output_dims
-                output_dims = lasagne.layers.get_output_shape(discriminator[name])
-                details.append([name, str(prev_output_dims), str(pad_amt),
-                                str(output_dims)])
+        prev_name = name
+        name = 'out'
+        discriminator[name] = lasagne.layers.ReshapeLayer(discriminator[prev_name], ([0], -1))
+        prev_output_dims = output_dims
+        output_dims = lasagne.layers.get_output_shape(discriminator[name])
+        details.append([name, str(prev_output_dims), str('reshape'),
+                        str(output_dims)])
 
-                prev_name = name
-                name = 'conv' + str(n)
-                num_filters = num_filters * 2
-                filter_size = 4
-                prev_num_filters = lasagne.layers.get_output_shape(discriminator[prev_name])[1]
-                discriminator = batch_conv(discriminator, prev_name, name, num_filters, filter_size,
-                                           2, 'valid', False, lrelu)
-                prev_output_dims = output_dims
-                output_dims = lasagne.layers.get_output_shape(discriminator[name])
-                details.append(
-                    [name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
-                     str(output_dims)])
+        try:
+            from tabulate import tabulate
+            print(tabulate(details))
+        except ImportError:
+            pass
 
-            prev_name = name
-            name = 'conv_final'
-            filter_size = 4
-            num_filters = 1
-            prev_num_filters = lasagne.layers.get_output_shape(discriminator[prev_name])[1]
-            discriminator[name] = lasagne.layers.Conv2DLayer(discriminator[prev_name], num_filters,
-                                                             filter_size, stride=1, pad='valid',
-                                                             nonlinearity=lasagne.nonlinearities.sigmoid)
-            prev_output_dims = output_dims
-            output_dims = lasagne.layers.get_output_shape(discriminator[name])
-            details.append([name, str(prev_output_dims), str((num_filters, prev_num_filters, filter_size, filter_size)),
-                            str(output_dims)])
+        return discriminator, input_var
 
-            prev_name = name
-            name = 'out'
-            discriminator[name] = lasagne.layers.ReshapeLayer(discriminator[prev_name], ([0], -1))
-            prev_output_dims = output_dims
-            output_dims = lasagne.layers.get_output_shape(discriminator[name])
-            details.append([name, str(prev_output_dims), str('reshape'),
-                            str(output_dims)])
-
-            try:
-                from tabulate import tabulate
-                print(tabulate(details))
-            except ImportError:
-                pass
-
-            return discriminator, input_var
+    def build_train_fns(self):
 
         print("Building model and compiling functions...")
         y_fake = T.tensor3('y_fake')
@@ -465,8 +465,8 @@ class IcGAN:
 
         # Builds discriminator and generator
         # y_var is in format [batchsize, categories, 1] and is flattened out in build_generator
-        discriminator, input_var = build_discriminator(y_var, self.li, self.nc, self.lab_ln)
-        generator, z_var = build_generator(y_3, self.li, self.nc, self.lab_ln, self.num_hidden)
+        discriminator, input_var = self.build_discriminator(y_var, self.li, self.nc, self.lab_ln)
+        generator, z_var = self.build_generator(y_3, self.li, self.nc, self.lab_ln, self.num_hidden)
 
         real_out = lasagne.layers.get_output(discriminator['out'],
                                              {discriminator['input']: input_var,

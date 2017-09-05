@@ -10,6 +10,33 @@ from gen_utils import deprocess_image
 def show_training_stats_graph(gen_train_err, dis_train_err, third_error, num_epochs, filename,
                               second_error_title='Discriminator Error on Real Images',
                               third_error_title='Discriminator Error on Fake Images'):
+    """
+    utils.show_training_stats_graph(gen_train_err, dis_train_err, third_error, num_epochs, filename,
+                              second_error_title='Discriminator Error on Real Images',
+                              third_error_title='Discriminator Error on Fake Images')
+
+    Shows a graph of error by each epoch, then saves figure to specified filename.
+
+    Parameters
+    ----------
+    gen_train_err : 1D :class:``NdArray``
+        Per epoch error of the generator.
+    dis_train_err : 1D :class:``NdArray``
+        Per epoch error of the discriminator.
+    third_error : 1D :class:``NdArray``
+        Optional third error. Some GANs split error of discriminator on fake / real images-
+        this parameter can be used to separate error in the graphs.
+    num_epochs : int
+        number of epochs network was trained for. Used to generate X axis labels.
+    filename : string
+        Absolute path filename for where to store the generated figure.
+    second_error_title : string
+        Title of the ``dis_train_err`` graph. By default, is set to ``'Discriminator
+        Error on Real Images'`` , which is the title used in IcGAN training.
+    third_error_title : string
+        Title of the ``third_error`` graph. By default, is set to ``'Discriminator
+        Error on Fake Images'`` , which is the title used in IcGAN training.
+    """
     # Make X labels
     labels = []
     for n in range(0, num_epochs):
@@ -34,8 +61,30 @@ def show_training_stats_graph(gen_train_err, dis_train_err, third_error, num_epo
     plt.close(fig)
 
 
-# Show 100 generated images as examples
 def show_examples_unlabeled(images, num_examples_row, li, nc, epoch, filename):
+    """
+    utils.show_examples_unlabeled(images, num_examples_row, li, nc, epoch, filename)
+
+    Shows sample of generated images, then saves figure to specified filename.
+
+    Parameters
+    ----------
+    images : 4D :class:``NdArray``
+        Generated images. Assumed to be in [-1, 1] range
+        and ``batchsize x nc x li x li`` dimensions.
+    num_examples_row : int
+        number of examples to show in each row of the figure. The figure is square
+        so the total number of generated examples shown will be ``num_examples_row ** 2``
+    li : int
+        Length of the image to be processed.
+    nc : int
+        Number of channels of image to be processed.
+    epoch : int or ``None``
+        Which epoch the reconstructions are from. This will display in the header
+        of the figure. Set to ``None`` to not display epoch number in figure header.
+    filename : string
+        Absolute path filename for where to store the generated figure.
+    """
 
     image = np.zeros((li * num_examples_row, li * num_examples_row, nc)).astype(np.float32)
 

@@ -5,12 +5,12 @@
 
 Welcome to GANs in Lasagne's documentation!
 ===========================================
-
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-   classes/datasets.rst
-   classes/models.rst
+   :maxdepth: 1
+
+   classes/datasets
+   classes/models
+   classes/utils
 
 Indices and tables
 ==================

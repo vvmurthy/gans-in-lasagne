@@ -48,115 +48,168 @@
 <em class="property">class </em><code class="descclassname">src.models.began.</code><code class="descname">BEGAN</code><span class="sig-paren">(</span><em>dataset</em>, <em>folder_name='began'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/models/began.html#BEGAN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.models.began.BEGAN" title="Permalink to this definition">¶</a></dt>
 <dd><p>BEGAN initialization and training class.
 Trains BEGAN model from [1].</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dataset</strong> : <code class="xref py py-class docutils literal"><span class="pre">Dataset</span></code> Object</p>
 <blockquote>
-<div><dl class="docutils">
-<dt>dataset <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal"><span class="pre">Dataset</span></code> Object</span></dt>
-<dd>Which dataset class to use. Provides dataset-specific
-hyperparameters + functions.</dd>
+<div><blockquote>
+<div><p>Which dataset class to use. Provides dataset-specific
+hyperparameters + functions.</p>
+</div></blockquote>
+<dl class="docutils">
 <dt>folder_name <span class="classifier-delimiter">:</span> <span class="classifier">string</span></dt>
-<dd>Where to store generated models, images, stats on training.
-Stores to <code class="docutils literal"><span class="pre">os.getcwd()</span> <span class="pre">+</span> <span class="pre">'/'</span> <span class="pre">+</span> <span class="pre">'folder_name'</span></code></dd>
+<dd><p class="first last">Where to store generated models, images, stats on training.
+Stores to <code class="docutils literal"><span class="pre">os.getcwd()</span> <span class="pre">+</span> <span class="pre">'/'</span> <span class="pre">+</span> <span class="pre">'folder_name'</span></code></p>
+</dd>
 </dl>
 </div></blockquote>
+<p><strong>Attributes</strong></p>
+<p><strong>———-</strong></p>
 <blockquote>
 <div><dl class="docutils">
 <dt>start_lr <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd>The initial learning rate to use. Default is 0.0001.</dd>
+<dd><p class="first last">The initial learning rate to use. Default is 0.0001.</p>
+</dd>
 <dt>num_epochs <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd>The number of epochs (full passes over dataset) to perform.
-Default is 25.</dd>
+<dd><p class="first last">The number of epochs (full passes over dataset) to perform.
+Default is 25.</p>
+</dd>
 <dt>bz <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd>The batchsize to use. Batches are moved from memory to GPU.
-Default size is 64.</dd>
+<dd><p class="first last">The batchsize to use. Batches are moved from memory to GPU.
+Default size is 64.</p>
+</dd>
 <dt>num_hidden <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd>Corresponds to Nh in Berthelot et al, the number of units to
-use in hidden representation of image. Default is 64.</dd>
+<dd><p class="first last">Corresponds to Nh in Berthelot et al, the number of units to
+use in hidden representation of image. Default is 64.</p>
+</dd>
 <dt>z_var <span class="classifier-delimiter">:</span> <span class="classifier">Function</span></dt>
-<dd>Method to generated noise vector. Default is to sample from
-uniform distribution.</dd>
+<dd><p class="first last">Method to generated noise vector. Default is to sample from
+uniform distribution.</p>
+</dd>
 <dt>gamma <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd>Gamma from Berthelot et al. Default is 0.7, though the authors
-sample from 0.5 up.</dd>
+<dd><p class="first last">Gamma from Berthelot et al. Default is 0.7, though the authors
+sample from 0.5 up.</p>
+</dd>
 <dt>num_filters <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd>number of filters <code class="docutils literal"><span class="pre">n</span></code> to use to start. Filters increase linearly
-with each upsample. Default is 64.</dd>
+<dd><p class="first last">number of filters <code class="docutils literal"><span class="pre">n</span></code> to use to start. Filters increase linearly
+with each upsample. Default is 64.</p>
+</dd>
 <dt>k_t <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd>Initial k_t from Berthelot et al. Default is 0. Note <code class="docutils literal"><span class="pre">k_t</span></code> is updated
-each epoch, so <code class="docutils literal"><span class="pre">k_t</span></code> varies by epoch.</dd>
+<dd><p class="first last">Initial k_t from Berthelot et al. Default is 0. Note <code class="docutils literal"><span class="pre">k_t</span></code> is updated
+each epoch, so <code class="docutils literal"><span class="pre">k_t</span></code> varies by epoch.</p>
+</dd>
 <dt>offset <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd>Berthelot et al train by linearly increasing number of filters
+<dd><p class="first last">Berthelot et al train by linearly increasing number of filters
 after strided convolution or nearest neighbor resize. This offsets
 the start of linearly increasing number of filters for modest hardware.
-Default is 5 (no increase in filters).</dd>
+Default is 5 (no increase in filters).</p>
+</dd>
 <dt>num_examples <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd>The number of example images to generate. Each epoch results in num_examples ** 2
-generated images being turned into a figure and saved.</dd>
+<dd><p class="first last">The number of example images to generate. Each epoch results in num_examples ** 2
+generated images being turned into a figure and saved.</p>
+</dd>
 <dt>seed <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd>Seed to use for random number (z_vector) generation during test time. Default is 115.</dd>
+<dd><p class="first last">Seed to use for random number (z_vector) generation during test time. Default is 115.</p>
+</dd>
 <dt>n_inter <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd>Number of steps to use when generating interpolation test figure.</dd>
+<dd><p class="first last">Number of steps to use when generating interpolation test figure.</p>
+</dd>
 </dl>
 </div></blockquote>
-<table class="docutils footnote" frame="void" id="id1" rules="none">
-<colgroup><col class="label" /><col /></colgroup>
-<tbody valign="top">
-<tr><td class="label">[1]</td><td>David Berthelot, Thomas Schumm, Luke Metz (2017):
-BEGAN: Boundary Equillibrium Generative Adversarial Networks. arXiv.
-<a class="reference external" href="https://arxiv.org/abs/1703.10717">https://arxiv.org/abs/1703.10717</a></td></tr>
+<p><strong>References</strong></p>
+<p><strong>———-</strong></p>
+<p><strong>.. [1] David Berthelot, Thomas Schumm, Luke Metz (2017):</strong></p>
+<blockquote class="last">
+<div><p>BEGAN: Boundary Equillibrium Generative Adversarial Networks. arXiv.
+<a class="reference external" href="https://arxiv.org/abs/1703.10717">https://arxiv.org/abs/1703.10717</a></p>
+</div></blockquote>
+</td>
+</tr>
 </tbody>
 </table>
+<p class="rubric">Methods</p>
 </dd></dl>
 
 <span class="target" id="module-src.models.icgan"></span><dl class="class">
 <dt id="src.models.icgan.IcGAN">
 <em class="property">class </em><code class="descclassname">src.models.icgan.</code><code class="descname">IcGAN</code><span class="sig-paren">(</span><em>dataset</em>, <em>folder_name='icgan'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/models/icgan.html#IcGAN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.models.icgan.IcGAN" title="Permalink to this definition">¶</a></dt>
-<dd><p>IcGan initialization and training class. Trains IcGAN model from [1].</p>
-<dl class="docutils">
-<dt>dataset <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-class docutils literal"><span class="pre">Dataset</span></code> Object</span></dt>
-<dd>Which dataset class to use. Provides dataset-specific
-hyperparameters + functions.</dd>
-<dt>folder_name <span class="classifier-delimiter">:</span> <span class="classifier">string</span></dt>
-<dd><dl class="first last docutils">
+<dd><p>IcGAN initialization and training class. Trains IcGAN model from [1].</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dataset</strong> : <code class="xref py py-class docutils literal"><span class="pre">Dataset</span></code> Object</p>
+<blockquote>
+<div><p>Which dataset class to use. Provides dataset-specific
+hyperparameters + functions.</p>
+</div></blockquote>
+<p><strong>folder_name</strong> : string</p>
+<blockquote>
+<div><dl class="docutils">
 <dt>Where to store generated models, images, stats on training.</dt>
-<dd>Stores to <code class="docutils literal"><span class="pre">os.getcwd()</span> <span class="pre">+</span> <span class="pre">'/'</span> <span class="pre">+</span> <span class="pre">'folder_name'</span></code></dd>
-</dl>
+<dd><p class="first last">Stores to <code class="docutils literal"><span class="pre">os.getcwd()</span> <span class="pre">+</span> <span class="pre">'/'</span> <span class="pre">+</span> <span class="pre">'folder_name'</span></code></p>
 </dd>
 </dl>
-<dl class="docutils">
-<dt>start_lr <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd>The initial learning rate to use. Default is 0.0002.</dd>
-<dt>num_epochs <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd>The number of epochs (full passes over dataset) to perform.
-Default is 25.</dd>
-<dt>bz <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd>The batchsize to use. Batches are moved from memory to GPU.
-Default size is 64.</dd>
-<dt>num_hidden <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd>The number of units to use in hidden representation of image.
-Default is 100.</dd>
-<dt>z_var <span class="classifier-delimiter">:</span> <span class="classifier">Function</span></dt>
-<dd>Method to generated noise vector. Default is to sample from
-uniform distribution.</dd>
-<dt>gamma <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd>Gamma from Berthelot et al. Default is 0.7, though the authors
-sample from 0.5 up.</dd>
-<dt>num_examples <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd>The number of example images to generate. Each epoch results in num_examples ** 2
-generated images being turned into a figure and saved.</dd>
-<dt>seed <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd>Seed to use for random number (z_vector) generation during test time. Default is 126.</dd>
-<dt>n_inter <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd>Number of steps to use when generating interpolation test figure.</dd>
-</dl>
-<table class="docutils footnote" frame="void" id="id2" rules="none">
-<colgroup><col class="label" /><col /></colgroup>
-<tbody valign="top">
-<tr><td class="label">[1]</td><td>Guim Perarnau, Joost van de Weijer, Bogdan Raducanu,
-Jose M. Alvarez(2016):
+</div></blockquote>
+<p><strong>Attributes</strong></p>
+<p><strong>———-</strong></p>
+<p><strong>start_lr</strong> : float</p>
+<blockquote>
+<div><p>The initial learning rate to use. Default is 0.0002.</p>
+</div></blockquote>
+<p><strong>num_epochs</strong> : int</p>
+<blockquote>
+<div><p>The number of epochs (full passes over dataset) to perform.
+Default is 25.</p>
+</div></blockquote>
+<p><strong>bz</strong> : int</p>
+<blockquote>
+<div><p>The batchsize to use. Batches are moved from memory to GPU.
+Default size is 64.</p>
+</div></blockquote>
+<p><strong>num_hidden</strong> : int</p>
+<blockquote>
+<div><p>The number of units to use in hidden representation of image.
+Default is 100.</p>
+</div></blockquote>
+<p><strong>z_var</strong> : Function</p>
+<blockquote>
+<div><p>Method to generated noise vector. Default is to sample from
+uniform distribution.</p>
+</div></blockquote>
+<p><strong>gamma</strong> : float</p>
+<blockquote>
+<div><p>Gamma from Berthelot et al. Default is 0.7, though the authors
+sample from 0.5 up.</p>
+</div></blockquote>
+<p><strong>num_examples</strong> : int</p>
+<blockquote>
+<div><p>The number of example images to generate. Each epoch results in num_examples ** 2
+generated images being turned into a figure and saved.</p>
+</div></blockquote>
+<p><strong>seed</strong> : int</p>
+<blockquote>
+<div><p>Seed to use for random number (z_vector) generation during test time. Default is 126.</p>
+</div></blockquote>
+<p><strong>n_inter</strong> : int</p>
+<blockquote>
+<div><p>Number of steps to use when generating interpolation test figure.</p>
+</div></blockquote>
+<p><strong>References</strong></p>
+<p><strong>———-</strong></p>
+<p><strong>.. [1] Guim Perarnau, Joost van de Weijer, Bogdan Raducanu,</strong></p>
+<blockquote class="last">
+<div><p>Jose M. Alvarez(2016):
 A guide to convolution arithmetic for deep learning. arXiv.
-<a class="reference external" href="https://arxiv.org/abs/1611.06355">https://arxiv.org/abs/1611.06355</a></td></tr>
+<a class="reference external" href="https://arxiv.org/abs/1611.06355">https://arxiv.org/abs/1611.06355</a></p>
+</div></blockquote>
+</td>
+</tr>
 </tbody>
 </table>
+<p class="rubric">Methods</p>
 </dd></dl>
 
 </div>
