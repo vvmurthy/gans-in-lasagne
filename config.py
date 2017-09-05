@@ -1,8 +1,10 @@
 import os
-from datasets.celeba import CelebA
-from datasets.mnist import Mnist
+
 from models.began import BEGAN
-from models.icgan import IcGAN
+
+from src.datasets import CelebA
+from src.datasets import Mnist
+from src.models.icgan import IcGAN
 
 
 def init_config():
@@ -39,20 +41,20 @@ def init_config():
     #   - num_hidden = the length of variable z (input to generator)
     #   - z_var = the method of generating z (so far there is only support for 1 method)
 
-    configuration['im_dir'] = os.getcwd() + '/celeba/'
-    configuration['folder_name'] = 'began_celeba2'
-    configuration['dataset'] = 'celeba'
-    configuration['model'] = 'began'
+    configuration['im_dir'] = os.getcwd() + '/mnist/'
+    folder_name = 'began_celeba2'
+    dataset = 'mnist'
+    configuration['model'] = 'icgan'
 
-    return configuration
+    return configuration, folder_name, dataset
 
 
 def config():
     # Initialize configuration
-    configuration = init_config()
+    configuration, folder_name, dataset = init_config()
 
     # Check dataset + combinations are supported
-    assert (configuration['dataset'] in ['celeba', 'mnist']), "Dataset not supported"
+    assert (dataset in ['celeba', 'mnist']), "Dataset not supported"
 
     # Check model is supported
     assert (configuration['model'] in ['icgan', 'began']), "Model not implemented"
@@ -60,24 +62,25 @@ def config():
     # Configure some settings based on dataset choice
     # Then Initialize Dataset
     print("Initializing Dataset...")
-    if 'mnist' == configuration['dataset']:
+    if 'mnist' == dataset:
         dataset = Mnist(configuration['im_dir'], **configuration)
-    elif 'celeba' == configuration['dataset']:
+    elif 'celeba' == dataset:
         dataset = CelebA(configuration['im_dir'], **configuration)
+
+    # Build models
+    if configuration['model'] == 'began':
+        model = BEGAN(dataset, folder_name, **configuration)
+    elif configuration['model'] == 'icgan':
+        model = IcGAN(dataset, folder_name, **configuration)
 
     # Save config dictionary 
     try:
         import pickle
-        filename = os.getcwd() +  '/' + configuration['folder_name'] + '/stats/config.pkl'
+        filename = os.getcwd() +  '/' + folder_name + '/stats/config.pkl'
         pickle.dump(configuration, open(filename, 'wb'), 
                     protocol=pickle.HIGHEST_PROTOCOL)
     except ImportError:
         pass
-
-    if configuration['model'] == 'began':
-        model = BEGAN(configuration['folder_name'], dataset, **configuration)
-    elif configuration['model'] == 'icgan':
-        model = IcGAN(configuration['folder_name'], dataset, **configuration)
 
     print('Done')
 
