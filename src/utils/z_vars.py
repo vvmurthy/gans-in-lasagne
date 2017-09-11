@@ -26,3 +26,25 @@ def z_var_uniform(bz, num_hidden):
     return z
 
 
+def z_var_gaussian(bz, num_hidden):
+    """
+    utils.z_var_gaussian(bz, num_hidden)
+    Creates Z vector from gaussian distribution, values restricted to range [-1, 1].
+
+    Parameters
+    ----------
+    bz : int
+        Batchsize of z vectors.
+    num_hidden : int
+        Length of z vector. Also called number of hidden units, or encoding state
+        in some papers.
+    Returns
+    -------
+    z : 2D :class:``NdArray``
+        A matrix of z vectors of size ``[bz, num_hidden]``
+    """
+    z = np.array(np.random.normal(0, 1, (bz, num_hidden))).astype(np.float32)
+    z = np.clip(z, -1, 1)
+    return z
+
+

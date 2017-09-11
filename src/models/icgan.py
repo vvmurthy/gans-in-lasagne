@@ -19,6 +19,17 @@ class IcGAN:
     models.IcGAN(dataset, folder_name='icgan', **kwargs)
     IcGAN initialization and training class. Trains IcGAN model from [1].
 
+    Our implementation is based off of [2] and [3].
+
+    Our implementation of ICGAN is trained in two steps.
+        1. Train the Generator + Discriminator
+        2. Train Encoder Z + Y, using minibatches of generated images from the trained generator
+
+    This is in contrast with the author's implementation that generates a single set of images to train on.
+
+    On a NVIDIA GTX 1060 6GB GPU, the GAN models took about 15 minutes per epoch to train.
+    The encoders took about 4-5 minutes per epoch to train.
+
     Parameters
     ----------
     dataset : :class:`Dataset` Object
@@ -57,8 +68,11 @@ class IcGAN:
     ----------
     .. [1] Guim Perarnau, Joost van de Weijer, Bogdan Raducanu,
            Jose M. Alvarez(2016):
-           A guide to convolution arithmetic for deep learning. arXiv.
+           Invertible Conditional GANs for Image Editing. arXiv.
            https://arxiv.org/abs/1611.06355
+    .. [2] https://github.com/Guim3/IcGAN
+    .. [3] https://gist.github.com/f0k/738fa2eedd9666b78404ed1751336f56
+
     """
     def __init__(self, folder_name, dataset, **kwargs):
 

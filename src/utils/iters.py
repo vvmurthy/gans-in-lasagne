@@ -7,6 +7,8 @@ def iterate_minibatches_conditional(inputs, targets, batchsize, shuffle=False):
 
     Given a set of loaded images and their y labels, returns a subset of size ``batchsize``.
 
+    This iterator, as with the other iterations, is based of the batch iterator in the MNIST Lasagne demo.
+
     Parameters
     ----------
     inputs : :class:``NdArray``
@@ -25,6 +27,9 @@ def iterate_minibatches_conditional(inputs, targets, batchsize, shuffle=False):
         A subset of the parameter ``inputs`` of size ``batchsize``.
     targets[excerpt] : :class:``NdArray``
         The corresponding subset of labels for ``input[excerpt]``
+    References
+    ----------
+    .. [1] https://github.com/Lasagne/Lasagne/blob/master/examples/mnist.py
     """
     assert len(inputs) == len(targets)
     if shuffle:

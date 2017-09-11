@@ -3,11 +3,6 @@ import scipy.misc as misc
 import sys
 import os
 import sklearn.preprocessing as prep
-# "Dataset" type files are specific to a given class
-# This dataset loader is MNIST specific
-# It will download MNIST if needed and preprocess images to 32 x 32
-# Because of the small size of MNIST as compared to other datasets, we
-# Do not support batch loading from memory
 
 
 class Mnist:
